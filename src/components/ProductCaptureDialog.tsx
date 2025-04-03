@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
@@ -59,38 +59,84 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
         speechRecognition.stop();
       }
     };
-  }, [isListening]);
+  }, [isListening, transcript, currentField]);
 
   const handleTranscriptComplete = () => {
-    if (transcript) {
-      switch (currentField) {
-        case 'product':
-          form.setValue('product', transcript);
-          setCurrentField('expiryDate');
-          break;
-        case 'expiryDate':
-          // Simple date parsing logic - can be expanded for more complex date formats
-          try {
-            // Try to extract a date from the transcript
-            const dateMatch = transcript.match(/(\d{1,2})\.?\s?(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez)\.?\s?(\d{4}|\d{2})/i);
+    if (!transcript.trim()) return;
+    
+    switch (currentField) {
+      case 'product':
+        form.setValue('product', transcript);
+        toast({
+          title: "Produkt erfasst",
+          description: `"${transcript}" als Produkt gespeichert.`,
+        });
+        setCurrentField('expiryDate');
+        break;
+      case 'expiryDate':
+        // Simple date parsing for German dates
+        try {
+          // Try to extract a date from the transcript
+          const months = {
+            'januar': 0, 'februar': 1, 'märz': 2, 'april': 3, 'mai': 4, 'juni': 5,
+            'juli': 6, 'august': 7, 'september': 8, 'oktober': 9, 'november': 10, 'dezember': 11,
+            'jan': 0, 'feb': 1, 'mär': 2, 'apr': 3, 'jun': 5, 'jul': 6, 'aug': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dez': 11
+          };
+          
+          const text = transcript.toLowerCase();
+          let date = null;
+          let day, month, year;
+          
+          // Pattern: "10. April 2025" or "10 April 2025"
+          const dateRegex = /(\d{1,2})\.?\s?(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|apr|jun|jul|aug|sep|okt|nov|dez)\.?\s?(\d{4}|\d{2})/i;
+          const match = text.match(dateRegex);
+          
+          if (match) {
+            day = parseInt(match[1], 10);
+            month = months[match[2].toLowerCase()];
+            year = parseInt(match[3], 10);
             
-            if (dateMatch) {
-              const date = new Date(transcript);
-              if (!isNaN(date.getTime())) {
-                form.setValue('expiryDate', date);
-              }
+            // Handle 2-digit years
+            if (year < 100) {
+              year += year < 50 ? 2000 : 1900;
             }
-          } catch (e) {
-            console.error('Failed to parse date from transcript:', transcript);
+            
+            date = new Date(year, month, day);
           }
-          setCurrentField('quantity');
-          break;
-        case 'quantity':
-          form.setValue('quantity', transcript);
-          break;
-      }
-      setTranscript('');
+          
+          if (date && !isNaN(date.getTime())) {
+            form.setValue('expiryDate', date);
+            toast({
+              title: "Ablaufdatum erfasst",
+              description: `Datum ${format(date, 'dd.MM.yyyy', { locale: de })} gespeichert.`,
+            });
+            setCurrentField('quantity');
+          } else {
+            toast({
+              title: "Datum nicht erkannt",
+              description: "Bitte versuche es erneut mit einem Format wie '10. April 2025'.",
+              variant: "destructive",
+            });
+          }
+        } catch (e) {
+          console.error('Failed to parse date from transcript:', transcript);
+          toast({
+            title: "Fehler bei der Datumserkennung",
+            description: "Bitte versuche es erneut mit einem klaren Datumsformat.",
+            variant: "destructive",
+          });
+        }
+        break;
+      case 'quantity':
+        form.setValue('quantity', transcript);
+        toast({
+          title: "Menge erfasst",
+          description: `"${transcript}" als Menge gespeichert.`,
+        });
+        break;
     }
+    
+    setTranscript('');
   };
 
   const startListening = () => {
@@ -98,6 +144,10 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
     try {
       speechRecognition.start();
       setIsListening(true);
+      toast({
+        title: `${getFieldLabel()}`,
+        description: "Spracherkennung läuft...",
+      });
     } catch (error) {
       console.error('Failed to start speech recognition:', error);
       toast({
@@ -128,6 +178,7 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
     });
     
     form.reset();
+    setCurrentField('product');
     onOpenChange(false);
   });
 
@@ -147,6 +198,9 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Produkt erfassen</DialogTitle>
+          <DialogDescription>
+            Erfasse ein neues Produkt mit Spracherkennung oder manuell.
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -221,16 +275,16 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
                 onClick={isListening ? stopListening : startListening}
                 size="lg"
                 className={`rounded-full h-16 w-16 ${
-                  isListening ? 'bg-destructive hover:bg-destructive/90 animate-recording' : 'bg-primary hover:bg-primary/90'
+                  isListening ? 'bg-destructive hover:bg-destructive/90 animate-pulse' : 'bg-primary hover:bg-primary/90'
                 }`}
                 aria-label={isListening ? 'Aufnahme stoppen' : 'Aufnahme starten'}
               >
                 {isListening ? 'Stop' : 'Aufnehmen'}
               </Button>
               {isListening && (
-                <div className="text-center py-2 px-4 rounded-md bg-muted">
+                <div className="text-center py-2 px-4 rounded-md bg-muted w-full">
                   <p className="font-medium">{getFieldLabel()}</p>
-                  {transcript && <p className="mt-2 text-sm">{transcript}</p>}
+                  {transcript && <p className="mt-2 text-sm italic">{transcript}</p>}
                 </div>
               )}
             </div>
