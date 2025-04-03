@@ -4,7 +4,7 @@ import { Trash } from 'lucide-react';
 import { Note, deleteNote } from '../services/noteStorage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 interface NoteCardProps {
@@ -25,7 +25,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
       </CardContent>
       <CardFooter className="flex justify-between items-center">
         <span className="text-sm text-muted-foreground">
-          {formatDistanceToNow(note.timestamp, { addSuffix: true, locale: de })}
+          {format(note.timestamp, 'dd.MM.yyyy HH:mm', { locale: de })}
         </span>
         <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive">
           <Trash size={16} />
