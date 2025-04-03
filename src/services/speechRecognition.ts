@@ -17,29 +17,31 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       // Use the standard SpeechRecognition or the webkit version
       const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-      this.recognition = new SpeechRecognitionAPI();
-      
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
-      this.recognition.lang = 'de-DE'; // Set to German language
-
-      this.recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
+      if (SpeechRecognitionAPI) {
+        this.recognition = new SpeechRecognitionAPI();
         
-        if (this.resultCallback) {
-          this.resultCallback(transcript);
-        }
-      };
+        this.recognition.continuous = true;
+        this.recognition.interimResults = true;
+        this.recognition.lang = 'de-DE'; // Set to German language
 
-      this.recognition.onend = () => {
-        this.isListening = false;
-        if (this.endCallback) {
-          this.endCallback();
-        }
-      };
+        this.recognition.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+          
+          if (this.resultCallback) {
+            this.resultCallback(transcript);
+          }
+        };
+
+        this.recognition.onend = () => {
+          this.isListening = false;
+          if (this.endCallback) {
+            this.endCallback();
+          }
+        };
+      }
     }
   }
 
