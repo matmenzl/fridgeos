@@ -74,37 +74,59 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
         setCurrentField('expiryDate');
         break;
       case 'expiryDate':
-        // Simple date parsing for German dates
+        // Enhanced date parsing for German dates
         try {
-          // Try to extract a date from the transcript
+          const text = transcript.toLowerCase();
+          let date = null;
+          
+          // Define month mappings for German
           const months = {
             'januar': 0, 'februar': 1, 'märz': 2, 'april': 3, 'mai': 4, 'juni': 5,
             'juli': 6, 'august': 7, 'september': 8, 'oktober': 9, 'november': 10, 'dezember': 11,
             'jan': 0, 'feb': 1, 'mär': 2, 'apr': 3, 'jun': 5, 'jul': 6, 'aug': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'dez': 11
           };
           
-          const text = transcript.toLowerCase();
-          let date = null;
-          let day, month, year;
+          // Multiple regex patterns to catch different formats
           
-          // Pattern: "10. April 2025" or "10 April 2025"
-          const dateRegex = /(\d{1,2})\.?\s?(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|apr|jun|jul|aug|sep|okt|nov|dez)\.?\s?(\d{4}|\d{2})/i;
-          const match = text.match(dateRegex);
+          // Pattern 1: "10. April 2025" or "10 April 2025"
+          const longFormatRegex = /(\d{1,2})\.?\s?(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|apr|jun|jul|aug|sep|okt|nov|dez)\.?\s?(\d{4}|\d{2})/i;
+          
+          // Pattern 2: "10.04.2025" or "10-04-2025" or "10/04/2025"
+          const numericFormatRegex = /(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4}|\d{2})/;
+          
+          let match = text.match(longFormatRegex);
           
           if (match) {
-            day = parseInt(match[1], 10);
-            month = months[match[2].toLowerCase()];
-            year = parseInt(match[3], 10);
+            const day = parseInt(match[1], 10);
+            const monthName = match[2].toLowerCase();
+            const monthIndex = months[monthName];
+            let year = parseInt(match[3], 10);
             
             // Handle 2-digit years
             if (year < 100) {
               year += year < 50 ? 2000 : 1900;
             }
             
-            date = new Date(year, month, day);
+            date = new Date(year, monthIndex, day);
+          } else {
+            // Try numeric format
+            match = text.match(numericFormatRegex);
+            if (match) {
+              const day = parseInt(match[1], 10);
+              const month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+              let year = parseInt(match[3], 10);
+              
+              // Handle 2-digit years
+              if (year < 100) {
+                year += year < 50 ? 2000 : 1900;
+              }
+              
+              date = new Date(year, month, day);
+            }
           }
           
-          if (date && !isNaN(date.getTime())) {
+          // Check if we have a valid date and it's not too far in the future (sanity check)
+          if (date && !isNaN(date.getTime()) && date > new Date() && date < new Date(2050, 0, 1)) {
             form.setValue('expiryDate', date);
             toast({
               title: "Ablaufdatum erfasst",
@@ -112,14 +134,15 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
             });
             setCurrentField('quantity');
           } else {
+            console.log("Invalid date parsing result:", date);
             toast({
               title: "Datum nicht erkannt",
-              description: "Bitte versuche es erneut mit einem Format wie '10. April 2025'.",
+              description: "Bitte versuche es erneut mit einem Format wie '10. April 2025' oder '10.04.2025'.",
               variant: "destructive",
             });
           }
         } catch (e) {
-          console.error('Failed to parse date from transcript:', transcript);
+          console.error('Failed to parse date from transcript:', transcript, e);
           toast({
             title: "Fehler bei der Datumserkennung",
             description: "Bitte versuche es erneut mit einem klaren Datumsformat.",
@@ -187,7 +210,7 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
       case 'product':
         return 'Produkt eingeben (z.B. Fleisch)';
       case 'expiryDate':
-        return 'Ablaufdatum eingeben (z.B. 10. April 2025)';
+        return 'Ablaufdatum eingeben (z.B. 10. April 2025 oder 10.04.2025)';
       case 'quantity':
         return 'Menge eingeben (z.B. 250 Gramm)';
     }
