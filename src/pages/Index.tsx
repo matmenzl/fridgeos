@@ -3,10 +3,14 @@ import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
 import { getAllNotes, saveNote, Note } from '../services/noteStorage';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import ProductCaptureDialog from '../components/ProductCaptureDialog';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,6 +33,17 @@ const Index = () => {
     }
   };
 
+  const handleProductSave = (data: { text: string, metadata: any }) => {
+    if (data.text.trim()) {
+      saveNote(data.text.trim());
+      loadNotes();
+      toast({
+        title: "Produkt gespeichert",
+        description: "Dein Produkt wurde erfolgreich gespeichert.",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
@@ -36,8 +51,20 @@ const Index = () => {
         <p className="text-muted-foreground">Nimm Sprachnotizen auf und speichere sie</p>
       </header>
 
-      <div className="mb-8">
-        <SpeechInput onTranscriptComplete={handleTranscriptComplete} />
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <SpeechInput onTranscriptComplete={handleTranscriptComplete} />
+        </div>
+        <div>
+          <Button 
+            onClick={() => setDialogOpen(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Plus size={16} />
+            Produkt erfassen
+          </Button>
+        </div>
       </div>
 
       <h2 className="text-xl font-semibold mb-4">Gespeicherte Notizen</h2>
@@ -59,6 +86,12 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      <ProductCaptureDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSave={handleProductSave}
+      />
     </div>
   );
 };
