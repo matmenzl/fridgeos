@@ -1,4 +1,3 @@
-
 import { supabase, initializeTables } from './supabaseClient';
 
 export interface Note {
@@ -13,22 +12,17 @@ export interface ProductNote {
   timestamp: number;
 }
 
-// Migration-Funktion, um lokale Daten nach Supabase zu übertragen
 export const migrateLocalDataToSupabase = async () => {
   try {
-    // Initialize tables first
     await initializeTables();
     
-    // Lokale Daten abrufen
     const localNotes = getLocalNotes();
     const localProducts = getLocalReceiptProducts();
     
-    // Zu Supabase übertragen, wenn vorhanden
     if (localNotes.length > 0) {
       for (const note of localNotes) {
         await saveNote(note.text);
       }
-      // Lokale Notizen löschen
       localStorage.removeItem('speech-notes');
     }
     
@@ -36,7 +30,6 @@ export const migrateLocalDataToSupabase = async () => {
       for (const product of localProducts) {
         await saveReceiptProduct(product.productName);
       }
-      // Lokale Produkte löschen
       localStorage.removeItem('receipt-products');
     }
     
@@ -47,7 +40,6 @@ export const migrateLocalDataToSupabase = async () => {
   }
 };
 
-// Helfer-Funktionen für lokale Daten
 const getLocalNotes = (): Note[] => {
   const notesJson = localStorage.getItem('speech-notes');
   return notesJson ? JSON.parse(notesJson) : [];
@@ -58,7 +50,6 @@ const getLocalReceiptProducts = (): ProductNote[] => {
   return productsJson ? JSON.parse(productsJson) : [];
 };
 
-// CRUD-Operationen mit Supabase
 export const saveNote = async (text: string): Promise<Note | null> => {
   console.log('Versuche Notiz zu speichern:', text);
   
@@ -79,7 +70,6 @@ export const saveNote = async (text: string): Promise<Note | null> => {
     
     if (error) {
       console.error('Fehler beim Speichern der Notiz:', error);
-      // Detailliertere Fehlerinformationen ausgeben
       console.error('Fehlerdetails:', {
         code: error.code,
         message: error.message,
@@ -92,7 +82,6 @@ export const saveNote = async (text: string): Promise<Note | null> => {
     return data;
   } catch (error) {
     console.error('Exception beim Speichern der Notiz:', error);
-    // Mehr Details über die Exception ausgeben
     if (error instanceof Error) {
       console.error('Fehlerdetails:', {
         name: error.name,
@@ -124,7 +113,6 @@ export const saveReceiptProduct = async (productName: string): Promise<ProductNo
     
     if (error) {
       console.error('Fehler beim Speichern des Produkts:', error);
-      // Detailliertere Fehlerinformationen ausgeben
       console.error('Fehlerdetails:', {
         code: error.code,
         message: error.message,
@@ -137,7 +125,6 @@ export const saveReceiptProduct = async (productName: string): Promise<ProductNo
     return data;
   } catch (error) {
     console.error('Exception beim Speichern des Produkts:', error);
-    // Mehr Details über die Exception ausgeben
     if (error instanceof Error) {
       console.error('Fehlerdetails:', {
         name: error.name,
@@ -281,10 +268,8 @@ export const deleteReceiptProduct = async (id: string): Promise<boolean> => {
   }
 };
 
-// Hilfsfunktion zum Testen der Verbindung
 export const testSupabaseConnection = async (): Promise<{success: boolean, message: string}> => {
   try {
-    // Versuche eine einfache Abfrage, um die Verbindung zu testen
     const { error } = await supabase.from('notes').select('id').limit(1);
     
     if (error) {

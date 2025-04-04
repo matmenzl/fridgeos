@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS public.receipt_products (
   timestamp bigint not null
 );
 
--- If tables already exist but columns don't match, use ALTER TABLE:
--- ALTER TABLE public.receipt_products RENAME COLUMN product_name TO "productName";`
+-- If you're getting an error about 'product_name' not existing, run this:
+-- ALTER TABLE public.receipt_products RENAME COLUMN product_name TO "productName";
+-- OR if you want to fix the code instead, modify the interface ProductNote in noteStorage.ts to use product_name`
       });
     };
     
