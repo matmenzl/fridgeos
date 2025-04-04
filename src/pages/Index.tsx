@@ -29,6 +29,11 @@ const Index = () => {
         // Jetzt die Daten aus Supabase laden
         await loadNotes();
         await loadReceiptProducts();
+        
+        toast({
+          title: "Erfolgreich geladen",
+          description: "Deine Produkte wurden geladen.",
+        });
       } catch (error) {
         console.error('Fehler beim Initialisieren der Daten:', error);
         toast({
@@ -50,8 +55,10 @@ const Index = () => {
       const savedNotes = await getAllNotes();
       console.log("Loaded notes count:", savedNotes.length);
       setNotes(savedNotes);
+      return savedNotes;
     } catch (error) {
       console.error('Fehler beim Laden der Notizen:', error);
+      throw error;
     }
   };
 
@@ -61,8 +68,10 @@ const Index = () => {
       const savedProducts = await getAllReceiptProducts();
       console.log("Loaded receipt products count:", savedProducts.length);
       setReceiptProducts(savedProducts);
+      return savedProducts;
     } catch (error) {
       console.error('Fehler beim Laden der Produkte:', error);
+      throw error;
     }
   };
 
@@ -123,9 +132,21 @@ const Index = () => {
 
   const updateProductLists = async () => {
     console.log("Updating product lists after receipt scan");
-    // This function refreshes both notes and receipt products
-    await loadNotes();
-    await loadReceiptProducts();
+    try {
+      setIsLoading(true);
+      // This function refreshes both notes and receipt products
+      await loadNotes();
+      await loadReceiptProducts();
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren der Produkte:', error);
+      toast({
+        title: "Fehler",
+        description: "Die Produkte konnten nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNoteDelete = async (noteId: string) => {
@@ -171,18 +192,13 @@ const Index = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Erfasste Lebensmittel</h2>
         
         <div className="mb-8">
-          {isLoading ? (
-            <div className="flex justify-center p-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <ProductList 
-              notes={notes}
-              receiptProducts={receiptProducts}
-              onNoteDelete={handleNoteDelete}
-              onReceiptProductDelete={handleDeleteReceiptProduct}
-            />
-          )}
+          <ProductList 
+            notes={notes}
+            receiptProducts={receiptProducts}
+            onNoteDelete={handleNoteDelete}
+            onReceiptProductDelete={handleDeleteReceiptProduct}
+            isLoading={isLoading}
+          />
         </div>
         
         <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />

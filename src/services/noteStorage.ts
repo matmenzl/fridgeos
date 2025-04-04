@@ -1,5 +1,5 @@
 
-import { supabase } from './supabaseClient';
+import { supabase, initializeTables } from './supabaseClient';
 
 export interface Note {
   id: string;
@@ -16,6 +16,9 @@ export interface ProductNote {
 // Migration-Funktion, um lokale Daten nach Supabase zu übertragen
 export const migrateLocalDataToSupabase = async () => {
   try {
+    // Initialize tables first
+    await initializeTables();
+    
     // Lokale Daten abrufen
     const localNotes = getLocalNotes();
     const localProducts = getLocalReceiptProducts();
@@ -63,18 +66,23 @@ export const saveNote = async (text: string): Promise<Note | null> => {
     timestamp: Date.now()
   };
   
-  const { data, error } = await supabase
-    .from('notes')
-    .insert(newNote)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Fehler beim Speichern der Notiz:', error);
+  try {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert(newNote)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Fehler beim Speichern der Notiz:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Exception beim Speichern der Notiz:', error);
     return null;
   }
-  
-  return data;
 };
 
 export const saveReceiptProduct = async (productName: string): Promise<ProductNote | null> => {
@@ -84,72 +92,97 @@ export const saveReceiptProduct = async (productName: string): Promise<ProductNo
     timestamp: Date.now()
   };
   
-  const { data, error } = await supabase
-    .from('receipt_products')
-    .insert(newProduct)
-    .select()
-    .single();
-  
-  if (error) {
-    console.error('Fehler beim Speichern des Produkts:', error);
+  try {
+    const { data, error } = await supabase
+      .from('receipt_products')
+      .insert(newProduct)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Fehler beim Speichern des Produkts:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Exception beim Speichern des Produkts:', error);
     return null;
   }
-  
-  return data;
 };
 
 export const getAllNotes = async (): Promise<Note[]> => {
-  const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .order('timestamp', { ascending: false });
-  
-  if (error) {
-    console.error('Fehler beim Abrufen der Notizen:', error);
+  try {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    
+    if (error) {
+      console.error('Fehler beim Abrufen der Notizen:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Exception beim Abrufen der Notizen:', error);
     return [];
   }
-  
-  return data || [];
 };
 
 export const getAllReceiptProducts = async (): Promise<ProductNote[]> => {
-  const { data, error } = await supabase
-    .from('receipt_products')
-    .select('*')
-    .order('timestamp', { ascending: false });
-  
-  if (error) {
-    console.error('Fehler beim Abrufen der Produkte:', error);
+  try {
+    const { data, error } = await supabase
+      .from('receipt_products')
+      .select('*')
+      .order('timestamp', { ascending: false });
+    
+    if (error) {
+      console.error('Fehler beim Abrufen der Produkte:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error('Exception beim Abrufen der Produkte:', error);
     return [];
   }
-  
-  return data || [];
 };
 
 export const deleteNote = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('notes')
-    .delete()
-    .eq('id', id);
-  
-  if (error) {
-    console.error('Fehler beim Löschen der Notiz:', error);
+  try {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Fehler beim Löschen der Notiz:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Exception beim Löschen der Notiz:', error);
     return false;
   }
-  
-  return true;
 };
 
 export const deleteReceiptProduct = async (id: string): Promise<boolean> => {
-  const { error } = await supabase
-    .from('receipt_products')
-    .delete()
-    .eq('id', id);
-  
-  if (error) {
-    console.error('Fehler beim Löschen des Produkts:', error);
+  try {
+    const { error } = await supabase
+      .from('receipt_products')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Fehler beim Löschen des Produkts:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Exception beim Löschen des Produkts:', error);
     return false;
   }
-  
-  return true;
 };
