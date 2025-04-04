@@ -2,7 +2,7 @@
 import React from 'react';
 import { ShoppingBag, Trash, Mic, Edit, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note, ProductNote } from '../services/noteStorage';
+import { Note, ProductNote, deleteNote } from '../services/noteStorage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -34,6 +34,15 @@ const ProductList: React.FC<ProductListProps> = ({
     console.log(`ProductList - Deleting product with ID: ${productId}`);
     console.log(`Available products before delete:`, receiptProducts.map(p => p.id));
     onReceiptProductDelete(productId);
+  };
+
+  // Handler for voice note deletion with additional logging
+  const handleNoteDelete = (noteId: string) => {
+    console.log(`ProductList - Deleting voice note with ID: ${noteId}`);
+    // First delete from storage
+    deleteNote(noteId);
+    // Then notify parent component to update state
+    onNoteDelete(noteId);
   };
 
   // Display a product card with consistent UI
@@ -106,7 +115,7 @@ const ProductList: React.FC<ProductListProps> = ({
               ? note.text.split('\n')[0].replace('Produkt:', '').trim()
               : note.text;
             
-            return renderProductCard(note.id, displayText, true, onNoteDelete);
+            return renderProductCard(note.id, displayText, true, handleNoteDelete);
           })
       )}
       
