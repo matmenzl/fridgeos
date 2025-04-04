@@ -1,8 +1,10 @@
 
 export interface ProductFormValues {
   product: string;
-  expiryDate: Date | undefined;
+  expiryDate?: Date;
   quantity: string;
+  id?: string;
+  isVoiceNote?: boolean;
 }
 
 export type CurrentFieldType = 'product' | 'expiryDate' | 'quantity';
