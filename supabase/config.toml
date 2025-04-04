@@ -1,17 +1,8 @@
 
 project_id = "ygvocurodighahfjyjnw"
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
+[functions.receipt-parser]
+verify_jwt = false
 
-[db]
-port = 54322
-
-[studio]
-port = 54323
-
-[functions]
 [functions.menu-suggestions]
 verify_jwt = false

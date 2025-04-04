@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { createWorker, PSM } from 'tesseract.js';
 import { useToast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from '../../integrations/supabase/client';
 
 interface OcrProcessorProps {
   imageUrl: string;
@@ -22,12 +22,153 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
   const { toast } = useToast();
   const [progress, setProgress] = useState(0);
   const [processingError, setProcessingError] = useState<Error | null>(null);
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     if (imageUrl) {
-      processImage(imageUrl);
+      processImageWithMindee(imageUrl);
     }
   }, [imageUrl]);
+
+  // Verarbeite das Bild mit der Mindee API über Supabase Edge Function
+  const processImageWithMindee = async (imageUrl: string) => {
+    onProcessingStart();
+    setProcessingError(null);
+    setProgress(10); // Anfangsstatus
+    
+    try {
+      toast({
+        title: "Verarbeitung gestartet",
+        description: "Bitte warte, während die Quittung mit Mindee analysiert wird...",
+      });
+
+      setProgress(30);
+
+      // Rufe die Supabase Edge Function auf
+      const { data, error } = await supabase.functions.invoke('receipt-parser', {
+        body: { image: imageUrl }
+      });
+
+      setProgress(70);
+
+      if (error) {
+        console.error('Supabase Edge Function Fehler:', error);
+        throw new Error(`Fehler bei der Verarbeitung: ${error.message}`);
+      }
+
+      if (!data.success) {
+        console.error('Mindee API Fehler:', data.error);
+        throw new Error(data.error || 'Unbekannter Fehler bei der Verarbeitung');
+      }
+
+      setProgress(90);
+
+      if (data.products && data.products.length > 0) {
+        // Produkte wurden erfolgreich erkannt
+        onProcessingComplete(data.products);
+        
+        toast({
+          title: "Quittung analysiert",
+          description: `${data.products.length} Produkte erkannt mit Mindee KI.`,
+        });
+      } else {
+        // Keine Produkte erkannt, verwende Fallback
+        console.log('Keine Produkte mit Mindee erkannt, verwende Tesseract Fallback');
+        setUseFallback(true);
+        toast({
+          title: "Mindee konnte keine Produkte erkennen",
+          description: "Versuche alternativen OCR-Ansatz...",
+        });
+        await processImageWithTesseract(imageUrl);
+      }
+
+      setProgress(100);
+    } catch (error) {
+      console.error('Fehler bei der Mindee Verarbeitung:', error);
+      // Bei einem Fehler, fallback auf Tesseract
+      setUseFallback(true);
+      toast({
+        title: "Mindee API nicht verfügbar",
+        description: "Versuche alternativen OCR-Ansatz...",
+        variant: "destructive",
+      });
+      await processImageWithTesseract(imageUrl);
+    }
+  };
+
+  // Fallback-Methode mit Tesseract.js (die bestehende Methode)
+  const processImageWithTesseract = async (imageUrl: string) => {
+    try {
+      setProgress(10);
+      toast({
+        title: "Alternativer Scan gestartet",
+        description: "Bitte warte, während die Quittung mit Tesseract gescannt wird...",
+      });
+
+      // Dynamisches Importieren von Tesseract.js bei Bedarf
+      const { createWorker, PSM } = await import('tesseract.js');
+      
+      // Überprüfe, ob das Bild gültig ist
+      if (!imageUrl.startsWith('data:image')) {
+        throw new Error('Ungültiges Bildformat. Bitte versuche es erneut mit einem anderen Bild.');
+      }
+
+      setProgress(30);
+
+      // Initialize Tesseract worker with optimized options for German receipts
+      const worker = await createWorker({
+        logger: m => {
+          console.log(m);
+          if (m.progress !== undefined) {
+            // Tesseract Progress auf 30-90% mappen
+            setProgress(30 + Math.round(m.progress * 60));
+          }
+        },
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      });
+      
+      // Load German language data
+      await worker.loadLanguage('deu');
+      
+      // Configure Tesseract for optimized German receipt scanning
+      await worker.initialize('deu');
+      
+      // Set Tesseract parameters for better receipt recognition
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
+        preserve_interword_spaces: '1',
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+      });
+      
+      const result = await worker.recognize(imageUrl);
+      console.log('OCR Result:', result);
+      
+      // Process the text to extract product information with improved filtering
+      const productLines = filterProductLines(result.data.text);
+      
+      await worker.terminate();
+      
+      setProgress(100);
+      
+      onProcessingComplete(productLines);
+      
+      toast({
+        title: "Quittung gescannt",
+        description: `${productLines.length} mögliche Produkte mit Tesseract erkannt.`,
+      });
+    } catch (error) {
+      console.error('Tesseract OCR Error:', error);
+      const finalError = error instanceof Error ? error : new Error('Unknown OCR error');
+      setProcessingError(finalError);
+      onError(finalError);
+      
+      toast({
+        title: "Fehler bei der Texterkennung",
+        description: "Die Quittung konnte nicht verarbeitet werden. Bitte versuche es erneut.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Optimize text extraction for German receipts
   const filterProductLines = (text: string): string[] => {
@@ -92,73 +233,6 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     return productLines;
   };
 
-  const processImage = async (imageUrl: string) => {
-    onProcessingStart();
-    setProcessingError(null);
-    
-    try {
-      toast({
-        title: "Verarbeitung gestartet",
-        description: "Bitte warte, während die Quittung gescannt wird...",
-      });
-
-      // Überprüfe, ob das Bild gültig ist
-      if (!imageUrl.startsWith('data:image')) {
-        throw new Error('Ungültiges Bildformat. Bitte versuche es erneut mit einem anderen Bild.');
-      }
-
-      // Initialize Tesseract worker with optimized options for German receipts
-      const worker = await createWorker({
-        logger: m => {
-          console.log(m);
-          if (m.progress !== undefined) {
-            setProgress(Math.round(m.progress * 100));
-          }
-        },
-        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-      });
-      
-      // Load German language data
-      await worker.loadLanguage('deu');
-      
-      // Configure Tesseract for optimized German receipt scanning
-      await worker.initialize('deu');
-      
-      // Set Tesseract parameters for better receipt recognition
-      await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
-        preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Using the proper enum value for a single uniform block of text
-      });
-      
-      const result = await worker.recognize(imageUrl);
-      console.log('OCR Result:', result);
-      
-      // Process the text to extract product information with improved filtering
-      const productLines = filterProductLines(result.data.text);
-      
-      await worker.terminate();
-      
-      onProcessingComplete(productLines);
-      
-      toast({
-        title: "Quittung gescannt",
-        description: `${productLines.length} mögliche Produkte erkannt.`,
-      });
-    } catch (error) {
-      console.error('OCR Error:', error);
-      const finalError = error instanceof Error ? error : new Error('Unknown OCR error');
-      setProcessingError(finalError);
-      onError(finalError);
-      
-      toast({
-        title: "Fehler bei der Texterkennung",
-        description: "Die Quittung konnte nicht verarbeitet werden. Bitte versuche es erneut.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const dismissError = () => {
     setProcessingError(null);
     // Hier können wir auch wieder zurück zur Kameraansicht navigieren
@@ -171,6 +245,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         <div className="mb-4">
           <p className="text-sm text-muted-foreground mb-2 text-center">
             Verarbeitung: {progress}%
+            {useFallback && " (Tesseract Fallback)"}
           </p>
           <Progress value={progress} className="w-full h-2" />
         </div>
