@@ -58,6 +58,19 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
       // Log debug information if available
       if (data.debug) {
         console.log('Mindee Debug-Informationen:', data.debug);
+        
+        // Log raw line items for detailed debugging
+        if (data.debug.line_items_raw && data.debug.line_items_raw.length > 0) {
+          console.log('Erkannte Produktlinien mit Confidence:');
+          data.debug.line_items_raw.forEach((item, index) => {
+            console.log(`${index + 1}. ${item.description || 'Unbekannt'} (Confidence: ${item.confidence || 'N/A'}, Preis: ${item.total_amount || 'N/A'})`);
+          });
+        }
+      }
+
+      // Log the mindee error if there is one
+      if (data.mindeeError) {
+        console.log('Mindee Verarbeitungsfehler:', data.mindeeError);
       }
 
       // Check if products were recognized

@@ -54,6 +54,7 @@ serve(async (req) => {
     formData.append("document", blob, `receipt.${originalImageFormat}`);
 
     let products = [];
+    let rawLineItems = [];
     let mindeeError = null;
     let mindeeResponse = null;
 
@@ -62,7 +63,7 @@ serve(async (req) => {
       try {
         console.log("Sende Anfrage an Mindee API...");
         
-        // Anfrage an Mindee API senden mit Timeout von 15 Sekunden (erhöht von 10)
+        // Anfrage an Mindee API senden mit Timeout von 15 Sekunden
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
         
@@ -90,23 +91,34 @@ serve(async (req) => {
         
         console.log("Mindee API Antwort erhalten, Verarbeite Ergebnisse...");
         
-        // Verwende die debug-Eigenschaft, um die vollständige Struktur zu sehen
+        // Logge die vollständige Antwortstruktur für Debugging
         console.log("Mindee API Antwort Struktur:", JSON.stringify(result.document.inference).substring(0, 500) + "...");
         
-        // Nur Produkte aus den line_items der Ergebnisse extrahieren
+        // Speichere alle line_items für Debugging, auch mit geringer Confidence
+        if (result.document?.inference?.prediction?.line_items && result.document.inference.prediction.line_items.length > 0) {
+          console.log(`Gefundene line_items: ${result.document.inference.prediction.line_items.length}`);
+          rawLineItems = result.document.inference.prediction.line_items.map(item => ({
+            description: item.description ? item.description.value : null,
+            confidence: item.description ? item.description.confidence : 0,
+            total_amount: item.total_amount ? item.total_amount.value : null
+          }));
+        }
+        
+        // Neue verbesserte Funktion zum Extrahieren der Produkte
         const extractLineItems = (data) => {
           const items = [];
           
-          // Verwende ausschließlich die Produktlinien
+          // Nur Produkt-Linien extrahieren, wenn vorhanden
           if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
-            console.log(`Gefundene line_items: ${data.prediction.line_items.length}`);
+            console.log(`Verarbeite ${data.prediction.line_items.length} line_items`);
             
             data.prediction.line_items.forEach((item, index) => {
-              // Füge Debugging-Informationen hinzu
-              console.log(`Item ${index}:`, JSON.stringify(item).substring(0, 200));
+              // Ausführliches Logging für jedes Item
+              console.log(`Item ${index}:`, JSON.stringify(item));
               
-              // Extrem niedrige Confidence-Schwelle (0.01) für Debugging
+              // Extrahiere Produkte mit jeder Confidence
               if (item.description) {
+                // Wenn die Confidence > 0, nehmen wir es
                 items.push({
                   value: item.description.value,
                   confidence: item.description.confidence
@@ -115,17 +127,26 @@ serve(async (req) => {
             });
           } else {
             console.log("Keine line_items in der Antwort gefunden oder leeres Array");
-            // Prüfe, ob andere Felder in der Antwort vorhanden sind
+            
+            // Versuche andere Felder in der API-Antwort zu finden
             if (data.prediction) {
               console.log("Vorhandene Felder in prediction:", Object.keys(data.prediction));
+              
+              // Wenn keine line_items vorhanden sind, versuche, den gesamten Text zu extrahieren
+              if (data.prediction.locale && data.prediction.locale.value) {
+                console.log("Locale gefunden:", data.prediction.locale.value);
+              }
+              
+              // Versuche Textextraktion, wenn vorhanden
+              if (data.prediction.total_amount && data.prediction.total_amount.value) {
+                console.log("Gesamtbetrag gefunden:", data.prediction.total_amount.value);
+              }
             }
           }
           
-          // Sortiere nach Confidence und filtere dann
-          return items
-            .sort((a, b) => b.confidence - a.confidence)
-            .filter(item => item.confidence > 0.1)
-            .map(item => item.value);
+          // Sortiere nach Confidence (höchste zuerst) und extrahiere die Werte
+          // KEINE Filterung mehr nach Confidence, wir nehmen einfach alles
+          return items.sort((a, b) => b.confidence - a.confidence).map(item => item.value);
         };
 
         products = extractLineItems(result.document);
@@ -133,7 +154,7 @@ serve(async (req) => {
         
         if (products.length === 0) {
           console.log("Keine Produkte von Mindee erkannt, verwende Tesseract als Fallback");
-          mindeeError = "Keine Produkte erkannt, alle Elemente unter Confidence-Schwelle";
+          mindeeError = "Keine Produkte erkannt oder alle Elemente unter Confidence-Schwelle";
         }
       } catch (error) {
         console.error("Fehler bei der Mindee API-Verarbeitung:", error);
@@ -151,12 +172,13 @@ serve(async (req) => {
         products: products,
         useTesseract: products.length === 0,
         mindeeError: mindeeError,
-        debug: mindeeResponse ? {
-          document_type: mindeeResponse.document?.inference?.prediction?.document_type,
-          page_count: mindeeResponse.document?.n_pages,
-          has_line_items: mindeeResponse.document?.inference?.prediction?.line_items ? true : false,
-          line_items_count: mindeeResponse.document?.inference?.prediction?.line_items?.length || 0
-        } : null
+        debug: {
+          line_items_raw: rawLineItems,
+          document_type: mindeeResponse?.document?.inference?.prediction?.document_type,
+          page_count: mindeeResponse?.document?.n_pages,
+          has_line_items: mindeeResponse?.document?.inference?.prediction?.line_items ? true : false,
+          line_items_count: mindeeResponse?.document?.inference?.prediction?.line_items?.length || 0
+        }
       }),
       { 
         headers: { 
