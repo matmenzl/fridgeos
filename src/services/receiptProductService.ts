@@ -5,8 +5,11 @@ import { ProductNote } from './noteStorage';
 export const saveReceiptProduct = (productName: string): ProductNote => {
   const products = getAllReceiptProducts();
   
+  // Create a unique ID by combining timestamp with a random string
+  const uniqueId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 10);
+  
   const newProduct: ProductNote = {
-    id: Date.now().toString(),
+    id: uniqueId,
     productName,
     timestamp: Date.now()
   };
@@ -14,6 +17,7 @@ export const saveReceiptProduct = (productName: string): ProductNote => {
   products.push(newProduct);
   localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(products));
   
+  console.log(`Saved new product with ID: ${uniqueId}`);
   return newProduct;
 };
 
