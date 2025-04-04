@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Trash } from 'lucide-react';
+import { Trash, Edit, Minus, Plus } from 'lucide-react';
 import { Note, deleteNote } from '../services/noteStorage';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -26,19 +27,64 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
     ? note.text.split('\n')[0].replace('Produkt:', '').trim()
     : note.text;
 
+  // Check for expiry date information
+  const hasExpiryDate = note.text.includes('Ablaufdatum:');
+  let expiryDate = '';
+  if (hasExpiryDate) {
+    const expiryLine = note.text.split('\n').find(line => line.includes('Ablaufdatum:'));
+    if (expiryLine) {
+      expiryDate = expiryLine.replace('Ablaufdatum:', '').trim();
+    }
+  }
+
+  // Extract category if available (assuming it's on the last line)
+  let category = '';
+  if (isFormattedProduct && note.text.split('\n').length > 2) {
+    category = note.text.split('\n')[note.text.split('\n').length - 1].trim();
+  }
+
   return (
-    <Card className="w-full">
-      <CardContent className="pt-6">
-        <p className="text-left break-words">{displayText}</p>
-      </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <span className="text-sm text-muted-foreground">
-          {format(note.timestamp, 'dd.MM.yyyy HH:mm', { locale: de })}
-        </span>
-        <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive">
-          <Trash size={16} />
-        </Button>
-      </CardFooter>
+    <Card className="w-full p-4 rounded-xl shadow-sm border-0">
+      <div className="flex flex-col gap-2">
+        <div className="flex justify-between items-start">
+          <h3 className="text-xl font-bold">{displayText}</h3>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="text-lg font-medium">500</span>
+            <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="text-gray-500 text-lg">500 g</div>
+        
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            {hasExpiryDate && expiryDate === 'today' && (
+              <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200 rounded-full px-4 py-1">
+                Expires today
+              </Badge>
+            )}
+            {category && (
+              <Badge variant="outline" className="bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200 rounded-full px-4 py-1">
+                {category}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="text-gray-400 h-10 w-10">
+              <Edit className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleDelete} className="text-gray-400 h-10 w-10">
+              <Trash className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -109,7 +110,7 @@ const Index = () => {
           </Button>
         </div>
 
-        <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Erfasste Lebensmittel</h2>
         
         <div className="grid gap-4 mb-8">
           {notes.length > 0 && (
