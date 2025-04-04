@@ -73,7 +73,8 @@ const ProductList: React.FC<ProductListProps> = ({
         id: note.id,
         name: cleanedName,
         isVoice: true,
-        category
+        category,
+        timestamp: note.timestamp // Include the timestamp property
       };
     });
 
@@ -90,7 +91,8 @@ const ProductList: React.FC<ProductListProps> = ({
         id: product.id,
         name: cleanedName,
         isVoice: false,
-        category
+        category,
+        timestamp: product.timestamp // Include the timestamp property
       };
     });
 
