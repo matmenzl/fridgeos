@@ -58,6 +58,7 @@ serve(async (req) => {
     let mindeeError = null;
     let mindeeResponse = null;
     let mindeeRawData = null;
+    let ocrText = null;
 
     // Nur wenn ein API-Schlüssel konfiguriert ist, versuchen wir die Mindee API zu verwenden
     if (MINDEE_API_KEY) {
@@ -89,87 +90,76 @@ serve(async (req) => {
         // Ergebnis parsen
         const result = await response.json();
         mindeeResponse = result; // Speichere die vollständige Antwort zur Diagnose
-        mindeeRawData = result.document?.inference?.prediction; // Speichere die Rohprognose
         
         console.log("Mindee API Antwort erhalten, Verarbeite Ergebnisse...");
         
-        // Logge die vollständige Antwortstruktur für Debugging
-        console.log("Mindee API Antwort Struktur:", JSON.stringify(result.document.inference).substring(0, 500) + "...");
-        
-        // Verbesserte Ausgabe der line_items
-        if (result.document?.inference?.prediction?.line_items && result.document.inference.prediction.line_items.length > 0) {
-          console.log(`Gefundene line_items: ${result.document.inference.prediction.line_items.length}`);
+        // Speichere die Rohprognose
+        if (result.document?.inference?.prediction) {
+          mindeeRawData = result.document.inference.prediction;
           
-          // Alle line_items erfassen, auch ohne Beschreibung oder mit geringer Confidence
-          rawLineItems = result.document.inference.prediction.line_items.map(item => {
-            const lineItem = {
-              description: item.description ? item.description.value : null,
-              confidence: item.description ? item.description.confidence : 0,
-              total_amount: item.total_amount ? item.total_amount.value : null
-            };
-            
-            console.log("Line item:", JSON.stringify(lineItem));
-            return lineItem;
-          });
+          // Extrahiere OCR-Text falls vorhanden
+          if (result.document.ocr && result.document.ocr.mvision_v1) {
+            ocrText = result.document.ocr.mvision_v1.raw_text;
+          }
         }
         
-        // Verbesserte Funktion zum Extrahieren ALLER Produkte ohne Confidence-Filter
-        const extractAllLineItems = (data) => {
-          const items = [];
+        // Logge die vollständige Antwortstruktur für Debugging
+        console.log("Mindee API Antwort:", JSON.stringify(result).substring(0, 500) + "...");
+        
+        // Verbesserte Extraktion von line_items
+        if (result.document?.inference?.prediction?.line_items) {
+          const items = result.document.inference.prediction.line_items;
+          console.log(`Gefundene line_items: ${items.length}`);
           
-          if (data.line_items && data.line_items.length > 0) {
-            console.log(`Verarbeite ${data.line_items.length} line_items`);
-            
-            // Extrahiere alle Text-Informationen, die wir finden können
-            data.line_items.forEach((item, index) => {
-              // Ausführliches Logging für jedes Item
-              console.log(`Item ${index}:`, JSON.stringify(item));
-              
-              // Sammle alle relevanten Daten, die wir finden können
-              if (item.description && item.description.value) {
-                items.push(item.description.value);
-              } else if (item.product && item.product.value) {
-                // Alternative Felder versuchen
-                items.push(item.product.value);
-              } else if (item.text && item.text.value) {
-                items.push(item.text.value);
-              } else if (item.item_name && item.item_name.value) {
-                items.push(item.item_name.value);
-              }
-            });
-          } else {
-            console.log("Keine line_items gefunden, versuche andere Textfelder...");
-            
-            // Versuche, andere Elemente aus der Quittung zu extrahieren
-            if (data.locale && data.locale.value) {
-              console.log("Locale gefunden:", data.locale.value);
-            }
-            
-            // Versuche, Text aus OCR-Ergebnissen zu extrahieren
-            if (data.ocr_text && data.ocr_text.length > 0) {
-              console.log("OCR-Text gefunden, extrahiere mögliche Produkte...");
-              
-              const lines = data.ocr_text.split("\n").filter(line => 
-                line.trim().length > 3 && 
-                !line.toLowerCase().includes("summe") && 
-                !line.toLowerCase().includes("gesamt") && 
-                !line.toLowerCase().includes("mwst") &&
-                !line.toLowerCase().includes("danke")
-              );
-              
-              items.push(...lines);
-            }
-          }
+          // Speichere die Rohdaten für Diagnosezwecke
+          rawLineItems = items.map(item => {
+            // Erstelle ein vollständiges Objekt für jedes line_item
+            return {
+              description: item.description ? item.description.value : null,
+              confidence: item.description ? item.description.confidence : null,
+              total_amount: item.total_amount ? item.total_amount.value : null,
+              quantity: item.quantity ? item.quantity.value : null,
+              unit_price: item.unit_price ? item.unit_price.value : null,
+              // Falls relevant, füge weitere Felder hinzu
+              raw_item: JSON.stringify(item).substring(0, 1000)
+            };
+          });
           
-          return items.filter(Boolean); // Entferne null-Werte
-        };
-
-        products = extractAllLineItems(result.document.inference.prediction);
-        console.log("Extrahierte Produkte:", products);
+          // Protokolliere jedes Item für Debugging
+          rawLineItems.forEach((item, index) => {
+            console.log(`Line Item ${index + 1}:`, JSON.stringify(item));
+          });
+          
+          // Verbesserte Extraktion der Produktnamen
+          products = items
+            .filter(item => item.description && item.description.value)
+            .map(item => item.description.value);
+            
+          console.log("Extrahierte Produkte:", products);
+        }
+        
+        // Wenn keine Produkte in line_items gefunden wurden, versuche Textextraktion
+        if (products.length === 0 && ocrText) {
+          console.log("Keine Produkte in line_items gefunden, extrahiere aus OCR-Text");
+          
+          // Einfache Textextraktion aus OCR-Daten
+          const lines = ocrText.split('\n')
+            .map(line => line.trim())
+            .filter(line => 
+              line.length > 3 && 
+              !line.toLowerCase().includes('summe') && 
+              !line.toLowerCase().includes('gesamt') && 
+              !line.toLowerCase().includes('total') &&
+              !line.toLowerCase().includes('mwst') &&
+              !line.toLowerCase().includes('ust')
+            );
+            
+          products = lines;
+          console.log("Aus OCR extrahierte Zeilen:", products);
+        }
         
         if (products.length === 0) {
-          console.log("Keine Produkte von Mindee erkannt, verwende Tesseract als Fallback");
-          mindeeError = "Keine Produkte erkannt oder alle Elemente hatten keine Beschreibungen";
+          mindeeError = "Keine Produkte erkannt oder keine beschreibungen für line items verfügbar";
         }
       } catch (error) {
         console.error("Fehler bei der Mindee API-Verarbeitung:", error);
@@ -193,7 +183,8 @@ serve(async (req) => {
           page_count: mindeeResponse?.document?.n_pages,
           has_line_items: mindeeResponse?.document?.inference?.prediction?.line_items ? true : false,
           line_items_count: mindeeResponse?.document?.inference?.prediction?.line_items?.length || 0,
-          raw_prediction: mindeeRawData ? JSON.stringify(mindeeRawData).substring(0, 1000) + "..." : null
+          raw_prediction: mindeeRawData ? JSON.stringify(mindeeRawData).substring(0, 1000) + "..." : null,
+          ocr_text: ocrText
         }
       }),
       { 
