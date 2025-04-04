@@ -193,7 +193,7 @@ const foodCategoryMap: Record<string, FoodCategory> = {
   'wein': FoodCategory.GETRÄNKE,
   'kaffee': FoodCategory.GETRÄNKE,
   'tee': FoodCategory.GETRÄNKE,
-  'milch': FoodCategory.GETRÄNKE,
+  // Removed duplicate 'milch': FoodCategory.GETRÄNKE entry
   'getränk': FoodCategory.GETRÄNKE,
   'getränke': FoodCategory.GETRÄNKE,
   
