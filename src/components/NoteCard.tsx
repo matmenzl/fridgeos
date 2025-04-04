@@ -15,7 +15,9 @@ interface NoteCardProps {
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
   const handleDelete = () => {
+    console.log("Deleting product:", note.id);
     deleteNote(note.id);
+    // Call the onDelete callback to notify parent component
     onDelete();
   };
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -7,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Plus, Scan, ShoppingBag, Trash } from "lucide-react";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
-import ReceiptScanner from '../components/ReceiptScanner';
+import ReceiptScanner from '../components/receipt-scanner/ReceiptScanner';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -66,8 +67,9 @@ const Index = () => {
   };
 
   const handleDeleteReceiptProduct = (id: string) => {
+    console.log("Deleting receipt product:", id);
     deleteReceiptProduct(id);
-    loadReceiptProducts();
+    loadReceiptProducts(); // Refresh the list after deletion
     toast({
       title: "Produkt gelöscht",
       description: "Das Produkt wurde erfolgreich gelöscht.",
@@ -79,6 +81,11 @@ const Index = () => {
     // This function refreshes both notes and receipt products
     loadNotes();
     loadReceiptProducts();
+  };
+
+  const handleNoteDelete = () => {
+    console.log("Note deleted, refreshing list");
+    loadNotes(); // Refresh the notes list after a note is deleted
   };
 
   return (
@@ -126,7 +133,7 @@ const Index = () => {
               <NoteCard 
                 key={note.id} 
                 note={note} 
-                onDelete={loadNotes} 
+                onDelete={handleNoteDelete} 
               />
             ))
           )}
