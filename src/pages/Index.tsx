@@ -1,13 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Note, ProductNote, deleteReceiptProduct, getAllNotes, getAllReceiptProducts, saveNote, migrateNotesToSupabase, migrateReceiptProductsToSupabase } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
+import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
+import ReceiptScanner from '../components/receipt-scanner/ReceiptScanner';
+import MenuSuggestions from '../components/MenuSuggestions';
 import PageHeader from '../components/PageHeader';
 import ActionButtons from '../components/ActionButtons';
-import MigrationNotification from '../components/MigrationNotification';
-import ProductsContent from '../components/ProductsContent';
-import DialogContainer from '../components/DialogContainer';
+import ProductList from '../components/ProductList';
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { Settings } from "lucide-react";
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -178,7 +180,25 @@ const Index = () => {
 
       <div className="px-4 md:px-6">
         {!hasMigrated && (
-          <MigrationNotification onMigrate={migrateDataToSupabase} />
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-1">
+                <p className="text-sm text-yellow-700">
+                  Du hast lokale Daten im Browser gespeichert. Möchtest du diese zu Supabase migrieren?
+                </p>
+              </div>
+              <div className="ml-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={migrateDataToSupabase}
+                  className="text-yellow-700 border-yellow-400"
+                >
+                  Jetzt migrieren
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         <ActionButtons 
@@ -186,21 +206,35 @@ const Index = () => {
           onScannerDialogOpen={() => setScannerDialogOpen(true)}
         />
 
-        <ProductsContent 
-          isLoading={isLoading}
-          notes={notes}
-          receiptProducts={receiptProducts}
-          onNoteDelete={handleNoteDelete}
-          onReceiptProductDelete={handleDeleteReceiptProduct}
-          onProductUpdate={updateProductLists}
-        />
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">Erfasste Lebensmittel</h2>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <ProductList 
+              notes={notes}
+              receiptProducts={receiptProducts}
+              onNoteDelete={handleNoteDelete}
+              onReceiptProductDelete={handleDeleteReceiptProduct}
+              onProductUpdate={updateProductLists}
+            />
+          </div>
+        )}
+        
+        <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
-        <DialogContainer 
-          productDialogOpen={productDialogOpen}
-          setProductDialogOpen={setProductDialogOpen}
-          scannerDialogOpen={scannerDialogOpen}
-          setScannerDialogOpen={setScannerDialogOpen}
-          onProductSave={handleProductSave}
+        <ProductCaptureDialog 
+          open={productDialogOpen}
+          onOpenChange={setProductDialogOpen}
+          onSave={handleProductSave}
+        />
+        
+        <ReceiptScanner
+          open={scannerDialogOpen}
+          onOpenChange={setScannerDialogOpen}
           onProductsUpdated={updateProductLists}
         />
       </div>
