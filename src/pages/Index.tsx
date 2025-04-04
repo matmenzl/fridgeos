@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
+import MenuSuggestions from '../components/MenuSuggestions';
 import { getAllNotes, saveNote, Note } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -79,7 +80,7 @@ const Index = () => {
 
       <h2 className="text-xl font-semibold mb-4">Gespeicherte Notizen</h2>
       
-      <div className="grid gap-4">
+      <div className="grid gap-4 mb-8">
         {notes.length > 0 ? (
           notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
             <NoteCard 
@@ -96,6 +97,9 @@ const Index = () => {
           </div>
         )}
       </div>
+      
+      {/* Add the menu suggestions component */}
+      <MenuSuggestions notes={notes} />
 
       <ProductCaptureDialog 
         open={productDialogOpen}
