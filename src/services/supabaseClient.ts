@@ -17,6 +17,21 @@ if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
 // Initialize Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// SQL code for creating the necessary tables
+const createTablesSql = `
+CREATE TABLE IF NOT EXISTS public.notes (
+  id text primary key,
+  text text not null,
+  timestamp bigint not null
+);
+
+CREATE TABLE IF NOT EXISTS public.receipt_products (
+  id text primary key,
+  productName text not null,
+  timestamp bigint not null
+);
+`;
+
 // Check for tables and inform the user if they need to be created
 export const initializeTables = async () => {
   try {
@@ -62,16 +77,18 @@ export const initializeTables = async () => {
       // Show a more prominent warning in the console
       console.warn('%c⚠️ SUPABASE TABLES MISSING ⚠️', 'font-size: 16px; font-weight: bold; color: red;');
       console.warn('%cPlease go to your Supabase dashboard and create the required tables manually.', 'font-size: 14px;');
-      console.warn('%cSee the warning messages above for table structure details.', 'font-size: 14px;');
+      console.warn('%cSee the warning messages above for table structure details or use the SQL below:', 'font-size: 14px;');
+      console.warn('%c' + createTablesSql, 'background-color: #f0f0f0; padding: 10px; border-radius: 5px;');
     }
 
     return { 
       success: true, 
       notesTableExists: !(checkNotesError && checkNotesError.code === '42P01'),
-      productsTableExists: !(checkProductsError && checkProductsError.code === '42P01')
+      productsTableExists: !(checkProductsError && checkProductsError.code === '42P01'),
+      createTablesSql
     };
   } catch (error) {
     console.error('Table initialization check failed:', error);
-    return { success: false, error };
+    return { success: false, error, createTablesSql };
   }
 };

@@ -3,16 +3,38 @@ import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { initializeTables } from "@/services/supabaseClient";
 
 const NotFound = () => {
   const location = useLocation();
   const [showSetupHelp, setShowSetupHelp] = useState(false);
+  const [setupInfo, setSetupInfo] = useState({ sql: '' });
 
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
+
+    // Get the SQL setup info
+    const fetchSetupInfo = async () => {
+      const info = await initializeTables();
+      setSetupInfo({
+        sql: info.createTablesSql || `CREATE TABLE IF NOT EXISTS public.notes (
+  id text primary key,
+  text text not null,
+  timestamp bigint not null
+);
+
+CREATE TABLE IF NOT EXISTS public.receipt_products (
+  id text primary key,
+  productName text not null,
+  timestamp bigint not null
+);`
+      });
+    };
+    
+    fetchSetupInfo();
   }, [location.pathname]);
 
   return (
@@ -45,17 +67,7 @@ const NotFound = () => {
                 <li>Run the following SQL to create necessary tables:</li>
               </ol>
               <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
-{`CREATE TABLE IF NOT EXISTS public.notes (
-  id text primary key,
-  text text not null,
-  timestamp bigint not null
-);
-
-CREATE TABLE IF NOT EXISTS public.receipt_products (
-  id text primary key,
-  productName text not null,
-  timestamp bigint not null
-);`}
+                {setupInfo.sql}
               </pre>
             </div>
           )}
