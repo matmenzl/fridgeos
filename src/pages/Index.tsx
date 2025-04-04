@@ -7,7 +7,7 @@ import { getAllNotes, saveNote, Note } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Plus, Scan } from "lucide-react";
-import ProductCaptureDialog from '../components/ProductCaptureDialog';
+import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 
 const Index = () => {
