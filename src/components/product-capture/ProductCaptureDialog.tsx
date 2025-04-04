@@ -6,10 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { useToast } from "@/hooks/use-toast";
-import { ProductFormValues, CurrentFieldType } from './types';
+import { ProductFormValues } from './types';
 import SpeechRecorder from './SpeechRecorder';
-import ExpiryDateField from './ExpiryDateField';
-import { parseGermanDateFromText, formatGermanDate } from '@/utils/dateParser';
 
 interface ProductCaptureDialogProps {
   open: boolean;
@@ -23,7 +21,6 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
   onSave
 }) => {
   const [isListening, setIsListening] = useState(false);
-  const [currentField, setCurrentField] = useState<CurrentFieldType>('product');
   const [transcript, setTranscript] = useState('');
   const { toast } = useToast();
   
@@ -41,52 +38,19 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
   }, [transcript]);
 
   const handleTranscriptComplete = () => {
-    console.log("Handling transcript completion. Current transcript:", transcript, "Current field:", currentField);
+    console.log("Handling transcript completion. Current transcript:", transcript);
     
     if (!transcript.trim()) {
       console.log("Transcript is empty, not processing.");
       return;
     }
     
-    switch (currentField) {
-      case 'product':
-        console.log("Setting product value:", transcript);
-        form.setValue('product', transcript);
-        toast({
-          title: "Produkt erfasst",
-          description: `"${transcript}" als Produkt gespeichert.`,
-        });
-        setCurrentField('expiryDate');
-        break;
-      case 'expiryDate':
-        // Enhanced date parsing for German dates
-        const date = parseGermanDateFromText(transcript);
-        
-        if (date) {
-          form.setValue('expiryDate', date);
-          toast({
-            title: "Ablaufdatum erfasst",
-            description: `Datum ${formatGermanDate(date)} gespeichert.`,
-          });
-          setCurrentField('quantity');
-        } else {
-          console.log("Invalid date parsing result:", date);
-          toast({
-            title: "Datum nicht erkannt",
-            description: "Bitte versuche es erneut mit einem Format wie '10. April 2025' oder '10.04.2025'.",
-            variant: "destructive",
-          });
-        }
-        break;
-      case 'quantity':
-        console.log("Setting quantity value:", transcript);
-        form.setValue('quantity', transcript);
-        toast({
-          title: "Menge erfasst",
-          description: `"${transcript}" als Menge gespeichert.`,
-        });
-        break;
-    }
+    console.log("Setting product value:", transcript);
+    form.setValue('product', transcript);
+    toast({
+      title: "Produkt erfasst",
+      description: `"${transcript}" als Produkt gespeichert.`,
+    });
     
     // Clear transcript after processing
     setTranscript('');
@@ -105,8 +69,8 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
       return;
     }
     
-    // Create formatted text for display purposes
-    const formattedText = `Produkt: ${data.product}${data.expiryDate ? `\nAblaufdatum: ${formatGermanDate(data.expiryDate)}` : ''}${data.quantity ? `\nMenge: ${data.quantity}` : ''}`;
+    // Create formatted text for display purposes - only include product name
+    const formattedText = `Produkt: ${data.product}`;
     
     // Call the onSave function with both the formatted text and the metadata
     onSave({
@@ -116,20 +80,8 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
     
     // Reset the form and close the dialog
     form.reset();
-    setCurrentField('product');
     onOpenChange(false);
   });
-
-  const getFieldLabel = () => {
-    switch (currentField) {
-      case 'product':
-        return 'Produkt eingeben (z.B. Fleisch)';
-      case 'expiryDate':
-        return 'Ablaufdatum eingeben (z.B. 10. April 2025 oder 10.04.2025)';
-      case 'quantity':
-        return 'Menge eingeben (z.B. 250 Gramm)';
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -156,27 +108,12 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
               )}
             />
             
-            <ExpiryDateField form={form} />
-            
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Menge</FormLabel>
-                  <FormControl>
-                    <Input placeholder="z.B. 250 Gramm" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
             <SpeechRecorder
               isListening={isListening}
               setIsListening={setIsListening}
               transcript={transcript}
               setTranscript={setTranscript}
-              fieldLabel={getFieldLabel()}
+              fieldLabel="Produkt eingeben (z.B. Fleisch)"
               onTranscriptComplete={handleTranscriptComplete}
             />
             
