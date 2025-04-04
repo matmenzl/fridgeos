@@ -17,7 +17,7 @@ if (!import.meta.env.VITE_SUPABASE_ANON_KEY) {
 // Initialize Supabase client
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Create tables if they don't exist
+// Check for tables and inform the user if they need to be created
 export const initializeTables = async () => {
   try {
     // Check if 'notes' table exists by querying it
@@ -26,28 +26,16 @@ export const initializeTables = async () => {
       .select('id')
       .limit(1);
       
-    // If the table doesn't exist, create it using SQL via the REST API
+    // If the table doesn't exist, inform the user
     if (checkNotesError && checkNotesError.code === '42P01') { // 42P01 is PostgreSQL's error code for "table does not exist"
-      console.log('Notes table does not exist, attempting to create...');
-      
-      // Use raw SQL via Supabase's functions.invoke method
-      const { error: createNotesError } = await supabase.functions.invoke('create-tables', {
-        body: { 
-          tableName: 'notes',
-          columns: [
-            { name: 'id', type: 'text', primaryKey: true },
-            { name: 'text', type: 'text', notNull: true },
-            { name: 'timestamp', type: 'bigint', notNull: true }
-          ]
-        }
-      });
-      
-      if (createNotesError) {
-        console.error('Error creating notes table via edge function:', createNotesError);
-        
-        // Fallback: Ask user to create the table manually
-        console.warn('IMPORTANT: The notes table could not be created automatically. Please create it manually in the Supabase dashboard.');
-      }
+      console.log('Notes table does not exist.');
+      console.warn(`
+        IMPORTANT: The notes table needs to be created manually. 
+        Please create it in the Supabase dashboard with these columns:
+        - id (text, primary key)
+        - text (text, not null)
+        - timestamp (bigint, not null)
+      `);
     }
 
     // Check if 'receipt_products' table exists
@@ -56,33 +44,34 @@ export const initializeTables = async () => {
       .select('id')
       .limit(1);
       
-    // If the table doesn't exist, create it
+    // If the table doesn't exist, inform the user
     if (checkProductsError && checkProductsError.code === '42P01') {
-      console.log('Receipt products table does not exist, attempting to create...');
-      
-      // Use raw SQL via Supabase's functions.invoke method
-      const { error: createProductsError } = await supabase.functions.invoke('create-tables', {
-        body: { 
-          tableName: 'receipt_products',
-          columns: [
-            { name: 'id', type: 'text', primaryKey: true },
-            { name: 'productName', type: 'text', notNull: true },
-            { name: 'timestamp', type: 'bigint', notNull: true }
-          ]
-        }
-      });
-      
-      if (createProductsError) {
-        console.error('Error creating receipt_products table via edge function:', createProductsError);
-        
-        // Fallback: Ask user to create the table manually
-        console.warn('IMPORTANT: The receipt_products table could not be created automatically. Please create it manually in the Supabase dashboard.');
-      }
+      console.log('Receipt products table does not exist.');
+      console.warn(`
+        IMPORTANT: The receipt_products table needs to be created manually. 
+        Please create it in the Supabase dashboard with these columns:
+        - id (text, primary key)
+        - productName (text, not null)
+        - timestamp (bigint, not null)
+      `);
     }
 
-    return { success: true };
+    // Detect if both tables need to be created
+    if ((checkNotesError && checkNotesError.code === '42P01') || 
+        (checkProductsError && checkProductsError.code === '42P01')) {
+      // Show a more prominent warning in the console
+      console.warn('%c⚠️ SUPABASE TABLES MISSING ⚠️', 'font-size: 16px; font-weight: bold; color: red;');
+      console.warn('%cPlease go to your Supabase dashboard and create the required tables manually.', 'font-size: 14px;');
+      console.warn('%cSee the warning messages above for table structure details.', 'font-size: 14px;');
+    }
+
+    return { 
+      success: true, 
+      notesTableExists: !(checkNotesError && checkNotesError.code === '42P01'),
+      productsTableExists: !(checkProductsError && checkProductsError.code === '42P01')
+    };
   } catch (error) {
-    console.error('Table initialization failed:', error);
+    console.error('Table initialization check failed:', error);
     return { success: false, error };
   }
 };
