@@ -82,7 +82,7 @@ const Index = () => {
           <Package size={28} className="text-green-500" />
           <span>Fridgie</span>
         </h1>
-        <p className="text-muted-foreground">Food-Checkin- und Checkout für möglichst wenig Foodwaste in deinem Zuhause.</p>
+        <p className="text-muted-foreground">Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.</p>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
