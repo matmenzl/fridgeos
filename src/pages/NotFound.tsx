@@ -20,7 +20,8 @@ const NotFound = () => {
     const fetchSetupInfo = async () => {
       const info = await initializeTables();
       setSetupInfo({
-        sql: info.createTablesSql || `CREATE TABLE IF NOT EXISTS public.notes (
+        sql: info.createTablesSql || `-- Important: Column names must match exactly as shown below
+CREATE TABLE IF NOT EXISTS public.notes (
   id text primary key,
   text text not null,
   timestamp bigint not null
@@ -28,9 +29,12 @@ const NotFound = () => {
 
 CREATE TABLE IF NOT EXISTS public.receipt_products (
   id text primary key,
-  productName text not null,
+  "productName" text not null,  -- Notice the quotes around productName
   timestamp bigint not null
-);`
+);
+
+-- If tables already exist but columns don't match, use ALTER TABLE:
+-- ALTER TABLE public.receipt_products RENAME COLUMN product_name TO "productName";`
       });
     };
     
@@ -64,16 +68,26 @@ CREATE TABLE IF NOT EXISTS public.receipt_products (
           
           {showSetupHelp && (
             <div className="bg-white p-4 rounded-lg shadow-md text-left">
-              <h2 className="font-bold mb-2">Setup Guide:</h2>
-              <p className="mb-2">If you're experiencing issues, you might need to set up the Supabase tables:</p>
+              <h2 className="font-bold mb-2">Database Setup Guide:</h2>
+              <p className="mb-2">If you're experiencing issues with saving data, you might need to check your Supabase table structure:</p>
+              
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                <p className="font-medium">Common Error: <code>Could not find the 'productName' column</code></p>
+                <p>This error occurs when the column names in your database don't exactly match what the app expects.</p>
+              </div>
+              
               <ol className="list-decimal pl-5 space-y-2 mb-4">
                 <li>Go to your Supabase dashboard</li>
                 <li>Navigate to the SQL Editor</li>
-                <li>Run the following SQL to create necessary tables:</li>
+                <li>Run the following SQL to create or update the necessary tables:</li>
               </ol>
               <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
                 {setupInfo.sql}
               </pre>
+              
+              <p className="mt-4 text-sm text-gray-600">
+                <strong>Note:</strong> In PostgreSQL, column names with special characters or camelCase need to be wrapped in double quotes.
+              </p>
             </div>
           )}
         </div>
