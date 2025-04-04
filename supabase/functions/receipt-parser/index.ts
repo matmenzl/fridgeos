@@ -59,6 +59,7 @@ serve(async (req) => {
     let mindeeResponse = null;
     let mindeeRawData = null;
     let ocrText = null;
+    let rawReceiptData = {};
 
     // Nur wenn ein API-Schlüssel konfiguriert ist, versuchen wir die Mindee API zu verwenden
     if (MINDEE_API_KEY) {
@@ -92,6 +93,14 @@ serve(async (req) => {
         mindeeResponse = result; // Speichere die vollständige Antwort zur Diagnose
         
         console.log("Mindee API Antwort erhalten, Verarbeite Ergebnisse...");
+
+        // Speichere alle relevanten Rohdaten für Diagnose und Extraktion
+        rawReceiptData = {
+          document_type: result.document?.inference?.prediction?.document_type?.value,
+          supplier_name: result.document?.inference?.prediction?.supplier_name?.value,
+          receipt_date: result.document?.inference?.prediction?.date?.value,
+          total_amount: result.document?.inference?.prediction?.total_amount?.value
+        };
         
         // Speichere die Rohprognose
         if (result.document?.inference?.prediction) {
@@ -103,42 +112,113 @@ serve(async (req) => {
           }
         }
         
-        // Logge die vollständige Antwortstruktur für Debugging
-        console.log("Mindee API Antwort:", JSON.stringify(result).substring(0, 500) + "...");
+        // Erweiterte Suche nach OCR Text in verschiedenen API-Antwortformaten
+        if (!ocrText && result.document?.ocr) {
+          // Durchsuche verschiedene mögliche OCR-Formate
+          const ocrData = result.document.ocr;
+          if (typeof ocrData === 'object') {
+            for (const key in ocrData) {
+              if (ocrData[key]?.raw_text) {
+                ocrText = ocrData[key].raw_text;
+                console.log(`OCR-Text aus ${key} gefunden`);
+                break;
+              }
+            }
+          }
+        }
+        
+        console.log("Verarbeite Mindee API Antwort...");
         
         // Verbesserte Extraktion von line_items
         if (result.document?.inference?.prediction?.line_items) {
           const items = result.document.inference.prediction.line_items;
           console.log(`Gefundene line_items: ${items.length}`);
           
-          // Speichere die Rohdaten für Diagnosezwecke
+          // Speichere die Rohdaten für Diagnosezwecke mit allen verfügbaren Feldern
           rawLineItems = items.map(item => {
-            // Erstelle ein vollständiges Objekt für jedes line_item
-            return {
-              description: item.description ? item.description.value : null,
-              confidence: item.description ? item.description.confidence : null,
-              total_amount: item.total_amount ? item.total_amount.value : null,
-              quantity: item.quantity ? item.quantity.value : null,
-              unit_price: item.unit_price ? item.unit_price.value : null,
-              // Falls relevant, füge weitere Felder hinzu
-              raw_item: JSON.stringify(item).substring(0, 1000)
-            };
+            const lineItem = {};
+            
+            // Alle verfügbaren Felder aus dem line_item extrahieren
+            for (const key in item) {
+              if (typeof item[key] === 'object' && item[key] !== null) {
+                if (item[key].value !== undefined) {
+                  lineItem[key] = {
+                    value: item[key].value,
+                    confidence: item[key].confidence || null
+                  };
+                }
+              } else {
+                lineItem[key] = item[key];
+              }
+            }
+            
+            return lineItem;
           });
           
-          // Protokolliere jedes Item für Debugging
-          rawLineItems.forEach((item, index) => {
-            console.log(`Line Item ${index + 1}:`, JSON.stringify(item));
-          });
+          console.log(`Extrahierte raw line items: ${JSON.stringify(rawLineItems).substring(0, 500)}...`);
           
-          // Verbesserte Extraktion der Produktnamen
+          // Verbesserte Extraktion der Produktnamen mit verschiedenen Fallbacks
           products = items
-            .filter(item => item.description && item.description.value)
-            .map(item => item.description.value);
+            .filter(item => {
+              // Beschreibung kann in verschiedenen Formaten vorliegen
+              return (
+                (item.description && 
+                  (typeof item.description === 'object' && item.description.value && item.description.value !== 'string') || 
+                  (typeof item.description === 'string' && item.description !== 'string')
+                ) ||
+                item.product_code || 
+                item.product_type || 
+                item.unit_price || 
+                item.total_amount
+              );
+            })
+            .map(item => {
+              // Versuche zuerst die Beschreibung zu bekommen
+              if (item.description) {
+                if (typeof item.description === 'object' && item.description.value && item.description.value !== 'string') {
+                  return item.description.value;
+                } else if (typeof item.description === 'string' && item.description !== 'string') {
+                  return item.description;
+                }
+              }
+              
+              // Fallbacks in Prioritätsreihenfolge
+              if (item.product_code) {
+                return typeof item.product_code === 'object' ? item.product_code.value : item.product_code;
+              }
+              if (item.product_type) {
+                return typeof item.product_type === 'object' ? item.product_type.value : item.product_type;
+              }
+              
+              // Wenn keine Beschreibung vorhanden ist, erstelle eine aus vorhandenen Daten
+              const amount = item.total_amount ? 
+                (typeof item.total_amount === 'object' ? item.total_amount.value : item.total_amount) : 
+                null;
+              
+              const quantity = item.quantity ? 
+                (typeof item.quantity === 'object' ? item.quantity.value : item.quantity) : 
+                null;
+                
+              if (quantity && amount) {
+                return `Artikel (${quantity} Stück, ${amount}€)`;
+              } else if (amount) {
+                return `Artikel für ${amount}€`;
+              }
+              
+              // Letzte Option: Generischer Produktname
+              return "Artikel auf Kassenbon";
+            });
             
           console.log("Extrahierte Produkte:", products);
         }
         
-        // Wenn keine Produkte in line_items gefunden wurden, versuche Textextraktion
+        // Wenn keine Produkte in line_items gefunden wurden, versuche den Lieferantennamen zu extrahieren
+        if (products.length === 0 && rawReceiptData.supplier_name) {
+          console.log("Keine spezifischen Produkte gefunden, verwende Lieferantennamen:", rawReceiptData.supplier_name);
+          products.push(`Einkauf bei ${rawReceiptData.supplier_name}`);
+        }
+        
+        // Wenn immer noch keine Produkte, versuche OCR-Text
         if (products.length === 0 && ocrText) {
           console.log("Keine Produkte in line_items gefunden, extrahiere aus OCR-Text");
           
@@ -151,11 +231,18 @@ serve(async (req) => {
               !line.toLowerCase().includes('gesamt') && 
               !line.toLowerCase().includes('total') &&
               !line.toLowerCase().includes('mwst') &&
-              !line.toLowerCase().includes('ust')
+              !line.toLowerCase().includes('ust') &&
+              !line.toLowerCase().includes('euro') &&
+              !line.toLowerCase().includes('€') &&
+              !line.match(/^\d+([,.]\d{2})?$/) && // Ausschluss reiner Zahlen/Preise
+              !line.match(/^\d{2}[.:]\d{2}[.:]\d{4}$/) // Ausschluss von Datumsformaten
             );
             
-          products = lines;
-          console.log("Aus OCR extrahierte Zeilen:", products);
+          // Füge gefilterte Zeilen zu den Produkten hinzu
+          if (lines.length > 0) {
+            products = lines;
+            console.log("Aus OCR extrahierte Zeilen:", products);
+          }
         }
         
         if (products.length === 0) {
@@ -179,7 +266,10 @@ serve(async (req) => {
         mindeeError: mindeeError,
         debug: {
           line_items_raw: rawLineItems,
-          document_type: mindeeResponse?.document?.inference?.prediction?.document_type,
+          document_type: rawReceiptData.document_type,
+          supplier_name: rawReceiptData.supplier_name,
+          receipt_date: rawReceiptData.receipt_date,
+          total_amount: rawReceiptData.total_amount,
           page_count: mindeeResponse?.document?.n_pages,
           has_line_items: mindeeResponse?.document?.inference?.prediction?.line_items ? true : false,
           line_items_count: mindeeResponse?.document?.inference?.prediction?.line_items?.length || 0,
