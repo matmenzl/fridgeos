@@ -1,13 +1,14 @@
 
 import { supabase } from '../integrations/supabase/client';
+import { Database } from '../integrations/supabase/types';
 
 export interface BaseItem {
   id: string;
   timestamp: number;
 }
 
-// Define a generic type for the database tables we interact with
-type SupabaseTable = 'notes' | 'receipt_products';
+// Define a type-safe Supabase table name
+export type SupabaseTable = keyof Database['public']['Tables'];
 
 export class BaseDataService<T extends BaseItem, DbItem> {
   private tableName: SupabaseTable;
@@ -189,13 +190,13 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     }
     
     try {
-      // Prepare items for Supabase
-      const itemsForSupabase = items.map(item => this.mapToDb(item));
+      // Prepare items for Supabase by mapping each one
+      const dbItems = items.map(item => this.mapToDb(item));
       
       // Insert items in Supabase
       const { error } = await supabase
         .from(this.tableName)
-        .insert(itemsForSupabase as any[]);
+        .insert(dbItems as any[]);
       
       if (error) {
         console.error(`Error migrating items to ${this.tableName}:`, error);

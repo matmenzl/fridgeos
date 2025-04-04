@@ -29,7 +29,10 @@ class ReceiptProductService extends BaseDataService<ProductNote, DbProduct> {
     );
   }
 
-  // Special methods specific to receipt products could be added here
+  // Method to access localStorage for migration purposes
+  getAllFromLocalStorage(): ProductNote[] {
+    return super.getFromLocalStorage();
+  }
 }
 
 // Create a singleton instance
@@ -56,6 +59,6 @@ export const updateReceiptProduct = async (id: string, productName: string): Pro
 };
 
 export const migrateReceiptProductsToSupabase = async (): Promise<boolean> => {
-  const localProducts = await getAllReceiptProducts();
+  const localProducts = receiptProductService.getAllFromLocalStorage();
   return receiptProductService.migrateToSupabase(localProducts);
 };

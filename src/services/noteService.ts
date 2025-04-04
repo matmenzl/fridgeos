@@ -29,7 +29,10 @@ class NoteService extends BaseDataService<Note, DbNote> {
     );
   }
 
-  // Special methods specific to notes could be added here
+  // Method to access localStorage for migration purposes
+  getAllFromLocalStorage(): Note[] {
+    return super.getFromLocalStorage();
+  }
 }
 
 // Create a singleton instance
@@ -54,6 +57,6 @@ export const updateNote = async (id: string, newText: string): Promise<Note | nu
 };
 
 export const migrateNotesToSupabase = async (): Promise<boolean> => {
-  const localNotes = await getAllNotes();
+  const localNotes = noteService.getAllFromLocalStorage();
   return noteService.migrateToSupabase(localNotes);
 };
