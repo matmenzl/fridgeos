@@ -20,57 +20,63 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 // Create tables if they don't exist
 export const initializeTables = async () => {
   try {
-    // Check if 'notes' table exists, if not create it
-    const { error: notesError } = await supabase.rpc('create_table_if_not_exists', {
-      table_name: 'notes',
-      columns: `
-        id text primary key,
-        text text not null,
-        timestamp bigint not null
-      `
-    });
-
-    if (notesError) {
-      console.error('Error creating notes table:', notesError);
+    // Check if 'notes' table exists by querying it
+    const { error: checkNotesError } = await supabase
+      .from('notes')
+      .select('id')
+      .limit(1);
       
-      // Fallback: Try direct SQL (requires create table permissions)
-      const { error: fallbackNotesError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS public.notes (
-          id text primary key,
-          text text not null,
-          timestamp bigint not null
-        );
-      `);
+    // If the table doesn't exist, create it using SQL via the REST API
+    if (checkNotesError && checkNotesError.code === '42P01') { // 42P01 is PostgreSQL's error code for "table does not exist"
+      console.log('Notes table does not exist, attempting to create...');
       
-      if (fallbackNotesError) {
-        console.error('Error in fallback notes table creation:', fallbackNotesError);
+      // Use raw SQL via Supabase's functions.invoke method
+      const { error: createNotesError } = await supabase.functions.invoke('create-tables', {
+        body: { 
+          tableName: 'notes',
+          columns: [
+            { name: 'id', type: 'text', primaryKey: true },
+            { name: 'text', type: 'text', notNull: true },
+            { name: 'timestamp', type: 'bigint', notNull: true }
+          ]
+        }
+      });
+      
+      if (createNotesError) {
+        console.error('Error creating notes table via edge function:', createNotesError);
+        
+        // Fallback: Ask user to create the table manually
+        console.warn('IMPORTANT: The notes table could not be created automatically. Please create it manually in the Supabase dashboard.');
       }
     }
 
-    // Check if 'receipt_products' table exists, if not create it
-    const { error: productsError } = await supabase.rpc('create_table_if_not_exists', {
-      table_name: 'receipt_products',
-      columns: `
-        id text primary key,
-        productName text not null,
-        timestamp bigint not null
-      `
-    });
-
-    if (productsError) {
-      console.error('Error creating receipt_products table:', productsError);
+    // Check if 'receipt_products' table exists
+    const { error: checkProductsError } = await supabase
+      .from('receipt_products')
+      .select('id')
+      .limit(1);
       
-      // Fallback: Try direct SQL
-      const { error: fallbackProductsError } = await supabase.query(`
-        CREATE TABLE IF NOT EXISTS public.receipt_products (
-          id text primary key,
-          productName text not null,
-          timestamp bigint not null
-        );
-      `);
+    // If the table doesn't exist, create it
+    if (checkProductsError && checkProductsError.code === '42P01') {
+      console.log('Receipt products table does not exist, attempting to create...');
       
-      if (fallbackProductsError) {
-        console.error('Error in fallback receipt_products table creation:', fallbackProductsError);
+      // Use raw SQL via Supabase's functions.invoke method
+      const { error: createProductsError } = await supabase.functions.invoke('create-tables', {
+        body: { 
+          tableName: 'receipt_products',
+          columns: [
+            { name: 'id', type: 'text', primaryKey: true },
+            { name: 'productName', type: 'text', notNull: true },
+            { name: 'timestamp', type: 'bigint', notNull: true }
+          ]
+        }
+      });
+      
+      if (createProductsError) {
+        console.error('Error creating receipt_products table via edge function:', createProductsError);
+        
+        // Fallback: Ask user to create the table manually
+        console.warn('IMPORTANT: The receipt_products table could not be created automatically. Please create it manually in the Supabase dashboard.');
       }
     }
 
