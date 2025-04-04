@@ -79,10 +79,10 @@ const Index = () => {
         <h1 className="text-2xl md:text-4xl font-bold mb-2 flex items-center justify-center">
           <img 
             src="/lovable-uploads/99cecf42-fa29-40be-843d-31a88b6a896d.png" 
-            alt="Fridgie Logo" 
+            alt="Fridge OS Logo" 
             className="h-10 mr-2" 
           />
-          <span>Fridgie</span>
+          <span>Fridge OS</span>
         </h1>
         <p className="text-white/90 text-lg">
           Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.
