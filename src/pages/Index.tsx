@@ -7,9 +7,6 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import PageHeader from '../components/PageHeader';
 import ActionButtons from '../components/ActionButtons';
 import ProductList from '../components/ProductList';
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);

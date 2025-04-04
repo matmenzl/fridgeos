@@ -1,20 +1,38 @@
 
 import React from 'react';
+import { Link } from "react-router-dom";
+import { Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
-const PageHeader: React.FC = () => {
+const PageHeader = () => {
   return (
-    <header className="fridgie-header-gradient w-full py-8 mb-8 text-center">
-      <h1 className="text-2xl md:text-4xl font-bold mb-2 flex items-center justify-center">
-        <img 
-          src="/lovable-uploads/2c44a1ec-8500-48eb-90d2-e51d8a384253.png" 
-          alt="FridgeOS Logo" 
-          className="h-10 mr-2" 
-        />
-        <span>FridgeOS</span>
-      </h1>
-      <p className="text-white/90 text-lg">
-        Verwalte deine Lenbesmittel smarter und koche kreativer ohne Stress - neu mit KI-generierten Rezeptideen.
-      </p>
+    <header className="sticky top-0 z-10 bg-white border-b shadow-sm p-4 md:p-6 flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Lebensmittel-Tracker</h1>
+        <p className="text-gray-500 text-sm">Behalte den Überblick über deine Lebensmittel</p>
+      </div>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" asChild>
+              <Link to="/admin">
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">Einstellungen</span>
+              </Link>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Admin-Bereich</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </header>
   );
 };
