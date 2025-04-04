@@ -57,6 +57,7 @@ serve(async (req) => {
     let rawLineItems = [];
     let mindeeError = null;
     let mindeeResponse = null;
+    let mindeeRawData = null;
 
     // Nur wenn ein API-Schlüssel konfiguriert ist, versuchen wir die Mindee API zu verwenden
     if (MINDEE_API_KEY) {
@@ -88,73 +89,87 @@ serve(async (req) => {
         // Ergebnis parsen
         const result = await response.json();
         mindeeResponse = result; // Speichere die vollständige Antwort zur Diagnose
+        mindeeRawData = result.document?.inference?.prediction; // Speichere die Rohprognose
         
         console.log("Mindee API Antwort erhalten, Verarbeite Ergebnisse...");
         
         // Logge die vollständige Antwortstruktur für Debugging
         console.log("Mindee API Antwort Struktur:", JSON.stringify(result.document.inference).substring(0, 500) + "...");
         
-        // Speichere alle line_items für Debugging, auch mit geringer Confidence
+        // Verbesserte Ausgabe der line_items
         if (result.document?.inference?.prediction?.line_items && result.document.inference.prediction.line_items.length > 0) {
           console.log(`Gefundene line_items: ${result.document.inference.prediction.line_items.length}`);
-          rawLineItems = result.document.inference.prediction.line_items.map(item => ({
-            description: item.description ? item.description.value : null,
-            confidence: item.description ? item.description.confidence : 0,
-            total_amount: item.total_amount ? item.total_amount.value : null
-          }));
+          
+          // Alle line_items erfassen, auch ohne Beschreibung oder mit geringer Confidence
+          rawLineItems = result.document.inference.prediction.line_items.map(item => {
+            const lineItem = {
+              description: item.description ? item.description.value : null,
+              confidence: item.description ? item.description.confidence : 0,
+              total_amount: item.total_amount ? item.total_amount.value : null
+            };
+            
+            console.log("Line item:", JSON.stringify(lineItem));
+            return lineItem;
+          });
         }
         
-        // Neue verbesserte Funktion zum Extrahieren der Produkte
-        const extractLineItems = (data) => {
+        // Verbesserte Funktion zum Extrahieren ALLER Produkte ohne Confidence-Filter
+        const extractAllLineItems = (data) => {
           const items = [];
           
-          // Nur Produkt-Linien extrahieren, wenn vorhanden
-          if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
-            console.log(`Verarbeite ${data.prediction.line_items.length} line_items`);
+          if (data.line_items && data.line_items.length > 0) {
+            console.log(`Verarbeite ${data.line_items.length} line_items`);
             
-            data.prediction.line_items.forEach((item, index) => {
+            // Extrahiere alle Text-Informationen, die wir finden können
+            data.line_items.forEach((item, index) => {
               // Ausführliches Logging für jedes Item
               console.log(`Item ${index}:`, JSON.stringify(item));
               
-              // Extrahiere Produkte mit jeder Confidence
-              if (item.description) {
-                // Wenn die Confidence > 0, nehmen wir es
-                items.push({
-                  value: item.description.value,
-                  confidence: item.description.confidence
-                });
+              // Sammle alle relevanten Daten, die wir finden können
+              if (item.description && item.description.value) {
+                items.push(item.description.value);
+              } else if (item.product && item.product.value) {
+                // Alternative Felder versuchen
+                items.push(item.product.value);
+              } else if (item.text && item.text.value) {
+                items.push(item.text.value);
+              } else if (item.item_name && item.item_name.value) {
+                items.push(item.item_name.value);
               }
             });
           } else {
-            console.log("Keine line_items in der Antwort gefunden oder leeres Array");
+            console.log("Keine line_items gefunden, versuche andere Textfelder...");
             
-            // Versuche andere Felder in der API-Antwort zu finden
-            if (data.prediction) {
-              console.log("Vorhandene Felder in prediction:", Object.keys(data.prediction));
+            // Versuche, andere Elemente aus der Quittung zu extrahieren
+            if (data.locale && data.locale.value) {
+              console.log("Locale gefunden:", data.locale.value);
+            }
+            
+            // Versuche, Text aus OCR-Ergebnissen zu extrahieren
+            if (data.ocr_text && data.ocr_text.length > 0) {
+              console.log("OCR-Text gefunden, extrahiere mögliche Produkte...");
               
-              // Wenn keine line_items vorhanden sind, versuche, den gesamten Text zu extrahieren
-              if (data.prediction.locale && data.prediction.locale.value) {
-                console.log("Locale gefunden:", data.prediction.locale.value);
-              }
+              const lines = data.ocr_text.split("\n").filter(line => 
+                line.trim().length > 3 && 
+                !line.toLowerCase().includes("summe") && 
+                !line.toLowerCase().includes("gesamt") && 
+                !line.toLowerCase().includes("mwst") &&
+                !line.toLowerCase().includes("danke")
+              );
               
-              // Versuche Textextraktion, wenn vorhanden
-              if (data.prediction.total_amount && data.prediction.total_amount.value) {
-                console.log("Gesamtbetrag gefunden:", data.prediction.total_amount.value);
-              }
+              items.push(...lines);
             }
           }
           
-          // Sortiere nach Confidence (höchste zuerst) und extrahiere die Werte
-          // KEINE Filterung mehr nach Confidence, wir nehmen einfach alles
-          return items.sort((a, b) => b.confidence - a.confidence).map(item => item.value);
+          return items.filter(Boolean); // Entferne null-Werte
         };
 
-        products = extractLineItems(result.document);
+        products = extractAllLineItems(result.document.inference.prediction);
         console.log("Extrahierte Produkte:", products);
         
         if (products.length === 0) {
           console.log("Keine Produkte von Mindee erkannt, verwende Tesseract als Fallback");
-          mindeeError = "Keine Produkte erkannt oder alle Elemente unter Confidence-Schwelle";
+          mindeeError = "Keine Produkte erkannt oder alle Elemente hatten keine Beschreibungen";
         }
       } catch (error) {
         console.error("Fehler bei der Mindee API-Verarbeitung:", error);
@@ -177,7 +192,8 @@ serve(async (req) => {
           document_type: mindeeResponse?.document?.inference?.prediction?.document_type,
           page_count: mindeeResponse?.document?.n_pages,
           has_line_items: mindeeResponse?.document?.inference?.prediction?.line_items ? true : false,
-          line_items_count: mindeeResponse?.document?.inference?.prediction?.line_items?.length || 0
+          line_items_count: mindeeResponse?.document?.inference?.prediction?.line_items?.length || 0,
+          raw_prediction: mindeeRawData ? JSON.stringify(mindeeRawData).substring(0, 1000) + "..." : null
         }
       }),
       { 

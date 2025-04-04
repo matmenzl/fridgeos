@@ -59,6 +59,11 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
       if (data.debug) {
         console.log('Mindee Debug-Informationen:', data.debug);
         
+        // Enhanced logging for raw prediction data if available
+        if (data.debug.raw_prediction) {
+          console.log('Rohe Vorhersagedaten:', data.debug.raw_prediction);
+        }
+        
         // Log raw line items for detailed debugging
         if (data.debug.line_items_raw && data.debug.line_items_raw.length > 0) {
           console.log('Erkannte Produktlinien mit Confidence:');
@@ -73,7 +78,7 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
         console.log('Mindee Verarbeitungsfehler:', data.mindeeError);
       }
 
-      // Check if products were recognized
+      // Enhanced check for products
       if (data.products && data.products.length > 0) {
         setProgress(100);
         
@@ -82,15 +87,37 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
           description: `${data.products.length} Produkte mit Cloud-KI erkannt.`,
         });
         
-        onComplete(data.products);
-        return;
+        // Filter out obvious non-product lines
+        const filteredProducts = data.products.filter(product => {
+          const lowerProduct = product.toLowerCase();
+          return (
+            product.length > 2 && 
+            !lowerProduct.includes('summe') &&
+            !lowerProduct.includes('gesamt') &&
+            !lowerProduct.includes('total') &&
+            !lowerProduct.includes('mwst') &&
+            !lowerProduct.includes('ust') &&
+            !lowerProduct.match(/^\d+([,.]\d{2})?$/) && // Exclude price-only lines
+            !lowerProduct.match(/^\d{2}[.:]\d{2}[.:]\d{4}$/) // Exclude date-only lines
+          );
+        });
+        
+        console.log('Gefilterte Produkte:', filteredProducts);
+        
+        if (filteredProducts.length > 0) {
+          onComplete(filteredProducts);
+          return;
+        } else {
+          console.log('Keine relevanten Produkte nach Filterung übrig, wechsle zu Tesseract');
+        }
       }
 
       // If no products or API error, switch to Tesseract
       console.log('Keine Produkte mit Mindee erkannt oder API-Fehler:', data.mindeeError);
       toast({
         title: "Cloud-Verarbeitung fehlgeschlagen",
-        description: "Wechsle zu lokaler Verarbeitung...",
+        description: "Mindee konnte keine Produkte in der Quittung finden. Wechsle zu lokaler Verarbeitung...",
+        variant: "destructive",
       });
       enableFallback();
       
