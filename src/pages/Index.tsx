@@ -73,7 +73,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen max-w-3xl mx-auto">
+    <div className="min-h-screen">
       <header className="fridgie-header-gradient w-full py-8 mb-8 text-center">
         <h1 className="text-2xl md:text-4xl font-bold mb-2 flex items-center justify-center">
           <img 
