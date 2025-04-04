@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -74,9 +73,9 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
-      <header className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center">
+    <div className="min-h-screen max-w-3xl mx-auto">
+      <header className="fridgie-header-gradient w-full py-8 mb-8 text-center">
+        <h1 className="text-2xl md:text-4xl font-bold mb-2 flex items-center justify-center">
           <img 
             src="/lovable-uploads/99cecf42-fa29-40be-843d-31a88b6a896d.png" 
             alt="Fridgie Logo" 
@@ -84,82 +83,86 @@ const Index = () => {
           />
           <span>Fridgie</span>
         </h1>
-        <p className="text-muted-foreground">Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.</p>
+        <p className="text-white/90 text-lg">
+          Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.
+        </p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-        <Button 
-          onClick={() => setProductDialogOpen(true)}
-          variant="outline"
-          className="flex flex-col items-center gap-2 h-auto py-4"
-        >
-          <Plus size={24} />
-          <span>Produkt per Voice erfassen</span>
-        </Button>
-        
-        <Button 
-          onClick={() => setScannerDialogOpen(true)}
-          variant="outline"
-          className="flex flex-col items-center gap-2 h-auto py-4"
-        >
-          <Scan size={24} />
-          <span>Quittung scannen</span>
-        </Button>
-      </div>
+      <div className="px-4 md:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <Button 
+            onClick={() => setProductDialogOpen(true)}
+            variant="outline"
+            className="flex flex-col items-center gap-2 h-auto py-4"
+          >
+            <Plus size={24} />
+            <span>Produkt per Voice erfassen</span>
+          </Button>
+          
+          <Button 
+            onClick={() => setScannerDialogOpen(true)}
+            variant="outline"
+            className="flex flex-col items-center gap-2 h-auto py-4"
+          >
+            <Scan size={24} />
+            <span>Quittung scannen</span>
+          </Button>
+        </div>
 
-      <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
-      
-      <div className="grid gap-4 mb-8">
-        {notes.length > 0 && (
-          notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
-            <NoteCard 
-              key={note.id} 
-              note={note} 
-              onDelete={loadNotes} 
-            />
-          ))
-        )}
+        <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
         
-        {receiptProducts.length > 0 && (
-          receiptProducts.sort((a, b) => b.timestamp - a.timestamp).map((product) => (
-            <div key={product.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-primary" />
-                <span>{product.productName}</span>
+        <div className="grid gap-4 mb-8">
+          {notes.length > 0 && (
+            notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
+              <NoteCard 
+                key={note.id} 
+                note={note} 
+                onDelete={loadNotes} 
+              />
+            ))
+          )}
+          
+          {receiptProducts.length > 0 && (
+            receiptProducts.sort((a, b) => b.timestamp - a.timestamp).map((product) => (
+              <div key={product.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4 text-primary" />
+                  <span>{product.productName}</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => handleDeleteReceiptProduct(product.id)} 
+                  className="text-destructive h-8 w-8"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => handleDeleteReceiptProduct(product.id)} 
-                className="text-destructive h-8 w-8"
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
+            ))
+          )}
+          
+          {notes.length === 0 && receiptProducts.length === 0 && (
+            <div className="text-center p-8 bg-muted rounded-lg">
+              <p className="text-muted-foreground">
+                Keine Lebensmittel vorhanden. Erfasse dein erstes Produkt!
+              </p>
             </div>
-          ))
-        )}
+          )}
+        </div>
         
-        {notes.length === 0 && receiptProducts.length === 0 && (
-          <div className="text-center p-8 bg-muted rounded-lg">
-            <p className="text-muted-foreground">
-              Keine Lebensmittel vorhanden. Erfasse dein erstes Produkt!
-            </p>
-          </div>
-        )}
-      </div>
-      
-      <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
+        <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
-      <ProductCaptureDialog 
-        open={productDialogOpen}
-        onOpenChange={setProductDialogOpen}
-        onSave={handleProductSave}
-      />
-      
-      <ReceiptScanner
-        open={scannerDialogOpen}
-        onOpenChange={setScannerDialogOpen}
-      />
+        <ProductCaptureDialog 
+          open={productDialogOpen}
+          onOpenChange={setProductDialogOpen}
+          onSave={handleProductSave}
+        />
+        
+        <ReceiptScanner
+          open={scannerDialogOpen}
+          onOpenChange={setScannerDialogOpen}
+        />
+      </div>
     </div>
   );
 };
