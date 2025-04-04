@@ -26,30 +26,61 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
 
   useEffect(() => {
     if (imageUrl) {
-      processImageWithMindee(imageUrl);
+      processImage(imageUrl);
     }
   }, [imageUrl]);
 
-  // Verarbeite das Bild mit der Mindee API über Supabase Edge Function
-  const processImageWithMindee = async (imageUrl: string) => {
+  // Verarbeite das Bild, versuche zunächst Mindee und dann Fallback zu Tesseract
+  const processImage = async (imageUrl: string) => {
     onProcessingStart();
     setProcessingError(null);
     setProgress(10); // Anfangsstatus
     
     try {
+      // Versuche zuerst Mindee API über die Edge Function
+      const mindeeResult = await processMindeeAPI(imageUrl);
+      
+      // Wenn Mindee Produkte gefunden hat, verwende diese
+      if (mindeeResult.products && mindeeResult.products.length > 0) {
+        onProcessingComplete(mindeeResult.products);
+        return;
+      }
+      
+      // Wenn Mindee keine Produkte gefunden hat oder ein Fehler auftrat, zu Tesseract wechseln
+      console.log('Keine Produkte mit Mindee erkannt oder API-Fehler:', mindeeResult.mindeeError);
+      setUseFallback(true);
       toast({
-        title: "Verarbeitung gestartet",
-        description: "Bitte warte, während die Quittung mit Mindee analysiert wird...",
+        title: "Fallback auf lokale Texterkennung",
+        description: "Die Cloud-KI konnte keine Produkte erkennen oder ist nicht verfügbar. Verwende lokale Texterkennung...",
       });
+      
+      await processImageWithTesseract(imageUrl);
+      
+    } catch (error) {
+      console.error('Fehler bei der Bildverarbeitung:', error);
+      setProcessingError(error instanceof Error ? error : new Error('Unbekannter Fehler'));
+      onError(error instanceof Error ? error : new Error('Unbekannter Fehler'));
+    }
+  };
 
-      setProgress(30);
+  // Verarbeite das Bild mit der Mindee API über Supabase Edge Function
+  const processMindeeAPI = async (imageUrl: string) => {
+    setProgress(20);
+    
+    toast({
+      title: "Verarbeitung gestartet",
+      description: "Quittung wird mit Cloud-KI analysiert...",
+    });
 
+    setProgress(40);
+
+    try {
       // Rufe die Supabase Edge Function auf
       const { data, error } = await supabase.functions.invoke('receipt-parser', {
         body: { image: imageUrl }
       });
 
-      setProgress(70);
+      setProgress(60);
 
       if (error) {
         console.error('Supabase Edge Function Fehler:', error);
@@ -57,52 +88,36 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       }
 
       if (!data.success) {
-        console.error('Mindee API Fehler:', data.error);
+        console.error('API Fehler:', data.error);
         throw new Error(data.error || 'Unbekannter Fehler bei der Verarbeitung');
       }
 
-      setProgress(90);
+      setProgress(80);
 
+      // Überprüfen, ob Produkte erkannt wurden
       if (data.products && data.products.length > 0) {
-        // Produkte wurden erfolgreich erkannt
-        onProcessingComplete(data.products);
+        setProgress(100);
         
         toast({
           title: "Quittung analysiert",
-          description: `${data.products.length} Produkte erkannt mit Mindee KI.`,
+          description: `${data.products.length} Produkte mit Cloud-KI erkannt.`,
         });
-      } else {
-        // Keine Produkte erkannt, verwende Fallback
-        console.log('Keine Produkte mit Mindee erkannt, verwende Tesseract Fallback');
-        setUseFallback(true);
-        toast({
-          title: "Mindee konnte keine Produkte erkennen",
-          description: "Versuche alternativen OCR-Ansatz...",
-        });
-        await processImageWithTesseract(imageUrl);
       }
 
-      setProgress(100);
+      return data;
     } catch (error) {
-      console.error('Fehler bei der Mindee Verarbeitung:', error);
-      // Bei einem Fehler, fallback auf Tesseract
-      setUseFallback(true);
-      toast({
-        title: "Mindee API nicht verfügbar",
-        description: "Versuche alternativen OCR-Ansatz...",
-        variant: "destructive",
-      });
-      await processImageWithTesseract(imageUrl);
+      console.error('Fehler bei der Edge Function:', error);
+      throw error;
     }
   };
 
-  // Fallback-Methode mit Tesseract.js (die bestehende Methode)
+  // Fallback-Methode mit Tesseract.js
   const processImageWithTesseract = async (imageUrl: string) => {
     try {
       setProgress(10);
       toast({
-        title: "Alternativer Scan gestartet",
-        description: "Bitte warte, während die Quittung mit Tesseract gescannt wird...",
+        title: "Lokale Texterkennung gestartet",
+        description: "Quittung wird lokal mit Tesseract gescannt...",
       });
 
       // Dynamisches Importieren von Tesseract.js bei Bedarf
@@ -154,7 +169,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       
       toast({
         title: "Quittung gescannt",
-        description: `${productLines.length} mögliche Produkte mit Tesseract erkannt.`,
+        description: `${productLines.length} mögliche Produkte mit lokaler Texterkennung identifiziert.`,
       });
     } catch (error) {
       console.error('Tesseract OCR Error:', error);

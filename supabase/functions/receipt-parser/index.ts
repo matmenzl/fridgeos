@@ -12,11 +12,6 @@ serve(async (req) => {
   }
 
   try {
-    // Überprüfen, ob der API-Schlüssel vorhanden ist
-    if (!MINDEE_API_KEY) {
-      throw new Error("Mindee API-Schlüssel nicht gefunden");
-    }
-
     // Request-Body parsen
     const contentType = req.headers.get("content-type") || "";
     let formData;
@@ -47,52 +42,78 @@ serve(async (req) => {
     const blob = new Blob([fileData], { type: "image/jpeg" });
     formData.append("document", blob, "receipt.jpg");
 
-    console.log("Sende Anfrage an Mindee API...");
-    
-    // Anfrage an Mindee API senden
-    const response = await fetch(MINDEE_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Token ${MINDEE_API_KEY}`
-      },
-      body: formData
-    });
+    let products = [];
+    let mindeeError = null;
 
-    // Überprüfe, ob die Anfrage erfolgreich war
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Mindee API Fehler:", response.status, errorText);
-      throw new Error(`Mindee API Fehler: ${response.status}`);
-    }
-
-    // Ergebnis parsen
-    const result = await response.json();
-    
-    // Nur Produkte aus den line_items der Ergebnisse extrahieren
-    const extractLineItems = (data) => {
-      const products = [];
-      
-      // Verwende ausschließlich die Produktlinien
-      if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
-        data.prediction.line_items.forEach(item => {
-          if (item.description && item.description.confidence > 0.6) {
-            products.push(item.description.value);
-          }
+    // Nur wenn ein API-Schlüssel konfiguriert ist, versuchen wir die Mindee API zu verwenden
+    if (MINDEE_API_KEY) {
+      try {
+        console.log("Sende Anfrage an Mindee API...");
+        
+        // Anfrage an Mindee API senden mit Timeout von 10 Sekunden
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const response = await fetch(MINDEE_API_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": `Token ${MINDEE_API_KEY}`
+          },
+          body: formData,
+          signal: controller.signal
         });
-      }
-      
-      return products;
-    };
+        
+        clearTimeout(timeoutId);
 
-    const extractedProducts = extractLineItems(result.document);
-    console.log("Extrahierte Produkte:", extractedProducts);
+        // Überprüfe, ob die Anfrage erfolgreich war
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Mindee API Fehler:", response.status, errorText);
+          throw new Error(`Mindee API Fehler: ${response.status}`);
+        }
+
+        // Ergebnis parsen
+        const result = await response.json();
+        
+        // Nur Produkte aus den line_items der Ergebnisse extrahieren
+        const extractLineItems = (data) => {
+          const items = [];
+          
+          // Verwende ausschließlich die Produktlinien
+          if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
+            data.prediction.line_items.forEach(item => {
+              if (item.description && item.description.confidence > 0.6) {
+                items.push(item.description.value);
+              }
+            });
+          }
+          
+          return items;
+        };
+
+        products = extractLineItems(result.document);
+        console.log("Extrahierte Produkte:", products);
+        
+        if (products.length === 0) {
+          console.log("Keine Produkte von Mindee erkannt, verwende Tesseract als Fallback");
+          mindeeError = "Keine Produkte erkannt";
+        }
+      } catch (error) {
+        console.error("Fehler bei der Mindee API-Verarbeitung:", error);
+        mindeeError = error.message;
+      }
+    } else {
+      console.log("Kein Mindee API-Schlüssel konfiguriert, überspringe API-Aufruf");
+      mindeeError = "API-Schlüssel nicht konfiguriert";
+    }
 
     // Antwort an den Client senden
     return new Response(
       JSON.stringify({ 
         success: true, 
-        products: extractedProducts,
-        raw: result // Vollständige Antwort für Debugging
+        products: products,
+        useTesseract: products.length === 0,
+        mindeeError: mindeeError
       }),
       { 
         headers: { 
@@ -108,7 +129,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message,
+        useTesseract: true
       }),
       { 
         status: 500,
