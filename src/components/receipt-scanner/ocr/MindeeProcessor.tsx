@@ -36,9 +36,12 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
     setProgress(40);
 
     try {
-      // Call the Supabase Edge Function
+      // Call the Supabase Edge Function with proper headers
       const { data, error } = await supabase.functions.invoke('receipt-parser', {
-        body: { image: imageUrl }
+        body: { image: imageUrl },
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       setProgress(60);

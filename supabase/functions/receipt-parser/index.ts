@@ -17,10 +17,23 @@ serve(async (req) => {
   try {
     console.log("Receipt parser function called");
     
-    // Get request body as text for debugging
-    const clonedReq = req.clone();
-    const bodyText = await clonedReq.text();
-    console.log("Request body:", bodyText.substring(0, 100) + (bodyText.length > 100 ? '...' : ''));
+    // Log request headers for debugging
+    const headers = {};
+    req.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    console.log("Request headers:", JSON.stringify(headers));
+    
+    // Create a clone to read the body as text for logging
+    const reqForText = req.clone();
+    let bodyText = "";
+    try {
+      bodyText = await reqForText.text();
+      req.bodyText = bodyText; // Store for processImageFromRequest
+      console.log("Request body (first 200 chars):", bodyText.substring(0, 200) + (bodyText.length > 200 ? '...' : ''));
+    } catch (e) {
+      console.error("Could not read request body as text:", e);
+    }
     
     // Process the image from the request
     try {

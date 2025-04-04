@@ -11,23 +11,40 @@ export function processImageFromRequest(req: Request): {
   let fileData: Uint8Array;
   let originalImageFormat = "jpeg"; // Default format
 
+  console.log("Processing request with Content-Type:", contentType);
+
   if (contentType.includes("application/json")) {
     try {
-      // Get the request body as text
-      const bodyText = req.bodyText || "{}";
-      
-      // Parse the JSON safely
+      // Get the request body as JSON
       let json;
+      
       try {
-        json = JSON.parse(bodyText);
+        // First try to get the parsed body directly (Supabase may have already parsed it)
+        const requestBodyText = req.text ? await req.text() : "";
+        console.log("Request body text length:", requestBodyText.length);
+        
+        if (requestBodyText && requestBodyText.length > 0) {
+          try {
+            json = JSON.parse(requestBodyText);
+          } catch (e) {
+            console.error("Failed to parse request body text:", e);
+            // Try to get the body from the request object directly
+            json = await req.json();
+          }
+        } else {
+          // If no text body, try to get the JSON directly
+          json = await req.json();
+        }
       } catch (e) {
-        console.error("JSON parse error:", e);
-        throw new Error(`Invalid JSON in request body: ${e.message}`);
+        console.error("Error accessing request body:", e);
+        throw new Error(`Could not access request body: ${e.message}`);
       }
+      
+      console.log("JSON parsed successfully, checking for image data");
       
       // Check if the image property exists and is a valid base64 string
       if (!json.image || typeof json.image !== 'string') {
-        console.error("No valid image found in request:", JSON.stringify(json).substring(0, 100));
+        console.error("No valid image found in request");
         throw new Error("No valid image in request body");
       }
       
