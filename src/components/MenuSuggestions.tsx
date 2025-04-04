@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shuffle, Image as ImageIcon } from "lucide-react";
+import { Shuffle, Image as ImageIcon, Utensils } from "lucide-react";
 import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
 
@@ -59,29 +59,32 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   }
   
   return (
-    <div className="mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Menüvorschläge</h2>
+    <div className="my-12">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-2">
+          <Utensils className="text-teal-500" size={24} />
+          <h2 className="text-2xl font-semibold">Recipe Suggestions</h2>
+        </div>
         <Button 
           variant="outline" 
           size="sm"
           onClick={regenerateSuggestions}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 border-green-500 text-green-500 hover:bg-green-50"
         >
           <Shuffle size={16} />
-          <span>Neu generieren</span>
+          <span>Generate New</span>
         </Button>
       </div>
       
       {menuSuggestions.length > 0 ? (
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
           {menuSuggestions.map((suggestion, index) => (
-            <Card key={index} className="overflow-hidden">
+            <Card key={index} className="overflow-hidden border shadow-sm">
               <div className="relative h-40 bg-muted">
                 {suggestionImages[index] ? (
                   <img 
                     src={suggestionImages[index]} 
-                    alt={`Bild für ${suggestion}`}
+                    alt={`Image for ${suggestion}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
@@ -101,9 +104,9 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
           ))}
         </div>
       ) : (
-        <div className="text-center p-8 bg-muted rounded-lg">
-          <p className="text-muted-foreground">
-            Keine Menüvorschläge verfügbar. Fügen Sie Produkte hinzu, um Vorschläge zu erhalten.
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">
+            No recipe suggestions available. Add products to get suggestions.
           </p>
         </div>
       )}
