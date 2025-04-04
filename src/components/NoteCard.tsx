@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Trash, Edit, Minus, Plus } from 'lucide-react';
-import { Note } from '../services/noteStorage';
+import { Note } from '../services/databaseUtils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

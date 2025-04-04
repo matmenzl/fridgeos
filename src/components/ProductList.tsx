@@ -3,7 +3,7 @@ import React from 'react';
 import NoteCard from './NoteCard';
 import { ShoppingBag, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note, ProductNote } from '../services/noteStorage';
+import { Note, ProductNote } from '../services/databaseUtils';
 import { Card } from '@/components/ui/card';
 
 interface ProductListProps {

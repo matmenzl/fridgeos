@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Trash } from "lucide-react";
-import { saveReceiptProduct, getAllReceiptProducts } from '../../services/noteStorage';
+import { saveReceiptProduct, getAllReceiptProducts } from '../../services/receiptProductService';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
