@@ -7,6 +7,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/
 import { useForm } from 'react-hook-form';
 import { useToast } from "@/hooks/use-toast";
 import { ProductFormValues } from './types';
+import { cleanProductName } from '../../utils/productNameCleaner';
 
 interface EditProductDialogProps {
   open: boolean;
@@ -27,19 +28,23 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
 }) => {
   const { toast } = useToast();
   
+  // Clean the product name to remove quantity information
+  const cleanedProductName = cleanProductName(initialData.productName);
+  
   const form = useForm<ProductFormValues>({
     defaultValues: {
-      product: initialData.productName,
+      product: cleanedProductName,
       id: initialData.id,
       isVoiceNote: initialData.isVoiceNote
     }
   });
 
-  // Update form when initialData changes
+  // Update form when initialData changes and ensure product name is cleaned
   useEffect(() => {
     if (open) {
+      const cleanedName = cleanProductName(initialData.productName);
       form.reset({
-        product: initialData.productName,
+        product: cleanedName,
         id: initialData.id,
         isVoiceNote: initialData.isVoiceNote
       });

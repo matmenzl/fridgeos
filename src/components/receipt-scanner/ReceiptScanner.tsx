@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Trash } from "lucide-react";
+import { Camera } from "lucide-react";
 import { saveReceiptProduct } from '../../services/noteStorage';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
 import LoadingState from './LoadingState';
+import { cleanProductName } from '../../utils/productNameCleaner';
 
 interface ReceiptScannerProps {
   open: boolean;
@@ -37,7 +38,9 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   };
 
   const handleProcessingComplete = (productLines: string[]) => {
-    setResults(productLines);
+    // Clean product names before displaying
+    const cleanedProductLines = productLines.map(line => cleanProductName(line));
+    setResults(cleanedProductLines);
     setScanning(false);
   };
 
@@ -70,9 +73,10 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const saveSelectedItems = async () => {
     if (selectedItems.length > 0) {
-      // Jedes ausgewählte Produkt einzeln speichern
+      // Jedes ausgewählte Produkt einzeln speichern - make sure they're cleaned
       selectedItems.forEach(item => {
-        saveReceiptProduct(item);
+        const cleanedItem = cleanProductName(item);
+        saveReceiptProduct(cleanedItem);
       });
       
       toast({

@@ -54,9 +54,12 @@ const ProductList: React.FC<ProductListProps> = ({
 
   // Handler for edit button click
   const handleEditClick = (id: string, name: string, isVoice: boolean) => {
+    // Ensure the name is cleaned before showing in the editor
+    const cleanedName = cleanProductName(name);
+    
     setCurrentEditProduct({
       id,
-      productName: name,
+      productName: cleanedName,
       isVoiceNote: isVoice
     });
     setEditDialogOpen(true);
@@ -99,7 +102,7 @@ const ProductList: React.FC<ProductListProps> = ({
   const processedReceiptProducts = receiptProducts
     .sort((a, b) => b.timestamp - a.timestamp)
     .map(product => {
-      // Clean the product name
+      // Clean the product name - apply rigorous cleaning
       const cleanedName = cleanProductName(product.productName);
       
       return {
