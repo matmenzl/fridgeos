@@ -1,4 +1,3 @@
-
 import { STORAGE_KEY } from './databaseUtils';
 import { Note } from './noteStorage';
 
@@ -26,4 +25,25 @@ export const deleteNote = (id: string): void => {
   const notes = getAllNotes();
   const updatedNotes = notes.filter(note => note.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedNotes));
+};
+
+export const updateNote = (id: string, newText: string): Note | null => {
+  const notes = getAllNotes();
+  const noteIndex = notes.findIndex(note => note.id === id);
+  
+  if (noteIndex === -1) {
+    console.error(`Note with ID ${id} not found`);
+    return null;
+  }
+  
+  const updatedNote: Note = {
+    ...notes[noteIndex],
+    text: newText,
+    timestamp: Date.now()
+  };
+  
+  notes[noteIndex] = updatedNote;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  
+  return updatedNote;
 };

@@ -1,4 +1,3 @@
-
 import { RECEIPT_PRODUCTS_KEY } from './databaseUtils';
 import { ProductNote } from './noteStorage';
 
@@ -45,4 +44,27 @@ export const deleteReceiptProduct = (id: string): void => {
   
   // Save the filtered products back to localStorage
   localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(updatedProducts));
+};
+
+export const updateReceiptProduct = (id: string, productName: string): ProductNote | null => {
+  const products = getAllReceiptProducts();
+  const productIndex = products.findIndex(product => product.id === id);
+  
+  if (productIndex === -1) {
+    console.error(`Product with ID ${id} not found`);
+    return null;
+  }
+  
+  // Update the product with new name, keep the same ID but update timestamp
+  const updatedProduct: ProductNote = {
+    ...products[productIndex],
+    productName,
+    timestamp: Date.now()
+  };
+  
+  products[productIndex] = updatedProduct;
+  localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(products));
+  
+  console.log(`Updated product with ID: ${id} to name: ${productName}`);
+  return updatedProduct;
 };

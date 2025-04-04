@@ -21,12 +21,14 @@ export { STORAGE_KEY, RECEIPT_PRODUCTS_KEY } from './databaseUtils';
 export { 
   saveNote,
   getAllNotes,
-  deleteNote
+  deleteNote,
+  updateNote
 } from './noteService';
 
 // Re-export receipt product functions
 export { 
   saveReceiptProduct,
   getAllReceiptProducts,
-  deleteReceiptProduct
+  deleteReceiptProduct,
+  updateReceiptProduct
 } from './receiptProductService';

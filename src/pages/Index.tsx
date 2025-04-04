@@ -80,10 +80,15 @@ const Index = () => {
   };
 
   const updateProductLists = () => {
-    console.log("Updating product lists after receipt scan");
+    console.log("Updating product lists after receipt scan or edit");
     // This function refreshes both notes and receipt products
     loadNotes();
     loadReceiptProducts();
+    
+    toast({
+      title: "Produkt aktualisiert",
+      description: "Das Produkt wurde erfolgreich aktualisiert.",
+    });
   };
 
   const handleNoteDelete = (noteId: string) => {
@@ -125,6 +130,7 @@ const Index = () => {
             receiptProducts={receiptProducts}
             onNoteDelete={handleNoteDelete}
             onReceiptProductDelete={handleDeleteReceiptProduct}
+            onProductUpdate={updateProductLists}
           />
         </div>
         

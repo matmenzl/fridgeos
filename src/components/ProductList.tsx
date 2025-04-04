@@ -1,24 +1,39 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingBag, Trash, Mic, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note, ProductNote, deleteNote } from '../services/noteStorage';
+import { Note, ProductNote, deleteNote, updateNote, updateReceiptProduct } from '../services/noteStorage';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import EditProductDialog from './product-capture/EditProductDialog';
 
 interface ProductListProps {
   notes: Note[];
   receiptProducts: ProductNote[];
   onNoteDelete: (noteId: string) => void;
   onReceiptProductDelete: (id: string) => void;
+  onProductUpdate: () => void; // New prop to refresh product lists after update
 }
 
 const ProductList: React.FC<ProductListProps> = ({ 
   notes, 
   receiptProducts, 
   onNoteDelete, 
-  onReceiptProductDelete 
+  onReceiptProductDelete,
+  onProductUpdate
 }) => {
+  // Add state for the edit dialog
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [currentEditProduct, setCurrentEditProduct] = useState<{
+    id: string;
+    productName: string;
+    isVoiceNote: boolean;
+  }>({
+    id: '',
+    productName: '',
+    isVoiceNote: false
+  });
+
   if (notes.length === 0 && receiptProducts.length === 0) {
     return (
       <div className="text-center p-8 bg-muted rounded-lg">
@@ -43,6 +58,33 @@ const ProductList: React.FC<ProductListProps> = ({
     deleteNote(noteId);
     // Then notify parent component to update state
     onNoteDelete(noteId);
+  };
+
+  // New handler for edit button click
+  const handleEditClick = (id: string, name: string, isVoice: boolean) => {
+    setCurrentEditProduct({
+      id,
+      productName: name,
+      isVoiceNote: isVoice
+    });
+    setEditDialogOpen(true);
+  };
+
+  // New handler for saving edited product
+  const handleEditSave = (data: any) => {
+    console.log('Saving edited product:', data);
+    
+    if (data.isVoiceNote) {
+      // For voice notes, we need to format the text similar to when we create it
+      const formattedText = `Produkt: ${data.product}${data.quantity ? `\nMenge: ${data.quantity}` : ''}`;
+      updateNote(data.id, formattedText);
+    } else {
+      // For receipt products, we just update the product name
+      updateReceiptProduct(data.id, data.product);
+    }
+    
+    // Notify parent to refresh lists
+    onProductUpdate();
   };
 
   // Display a product card with consistent UI
@@ -76,7 +118,12 @@ const ProductList: React.FC<ProductListProps> = ({
             </div>
             
             <div className="flex gap-2">
-              <Button variant="ghost" size="icon" className="text-gray-400 h-10 w-10">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleEditClick(id, name, isVoice)}
+                className="text-gray-400 h-10 w-10"
+              >
                 <Edit className="h-5 w-5" />
               </Button>
               <Button 
@@ -117,6 +164,14 @@ const ProductList: React.FC<ProductListProps> = ({
             renderProductCard(product.id, product.productName, false, handleProductDelete)
           )
       )}
+
+      {/* Add the EditProductDialog component */}
+      <EditProductDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleEditSave}
+        initialData={currentEditProduct}
+      />
     </div>
   );
 };
