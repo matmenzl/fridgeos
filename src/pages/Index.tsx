@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -23,11 +22,13 @@ const Index = () => {
   }, []);
 
   const loadNotes = () => {
+    console.log("Loading notes...");
     const savedNotes = getAllNotes();
     setNotes(savedNotes);
   };
 
   const loadReceiptProducts = () => {
+    console.log("Loading receipt products...");
     const savedProducts = getAllReceiptProducts();
     setReceiptProducts(savedProducts);
   };
@@ -74,6 +75,7 @@ const Index = () => {
   };
 
   const updateProductLists = () => {
+    console.log("Updating product lists after receipt scan");
     // This function refreshes both notes and receipt products
     loadNotes();
     loadReceiptProducts();

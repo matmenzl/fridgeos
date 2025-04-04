@@ -13,7 +13,7 @@ import LoadingState from './LoadingState';
 interface ReceiptScannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProductsUpdated?: () => void; // New callback prop for product updates
+  onProductsUpdated?: () => void; // Callback prop for product updates
 }
 
 const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
@@ -60,7 +60,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     setSelectedItems([]);
   };
 
-  const saveSelectedItems = () => {
+  const saveSelectedItems = async () => {
     if (selectedItems.length > 0) {
       // Jedes ausgewählte Produkt einzeln speichern
       selectedItems.forEach(item => {
