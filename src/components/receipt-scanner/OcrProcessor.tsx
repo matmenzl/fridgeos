@@ -115,7 +115,6 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         tessedit_pageseg_mode: PSM.AUTO,
         tessjs_create_hocr: '0',
         tessjs_create_tsv: '0',
-        tessedit_do_invert: '0',
         language_model_penalty_non_dict_word: '0.5',
         language_model_penalty_case: '0.1',
       });
