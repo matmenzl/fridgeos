@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 // Use the project ID to construct the Supabase URL
@@ -32,7 +31,7 @@ CREATE TABLE IF NOT EXISTS public.notes (
 
 CREATE TABLE IF NOT EXISTS public.receipt_products (
   id text primary key,
-  productName text not null,
+  "productName" text not null,
   timestamp bigint not null
 );
 `;

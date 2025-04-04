@@ -1,3 +1,4 @@
+
 import { supabase, initializeTables } from './supabaseClient';
 
 export interface Note {
@@ -8,7 +9,7 @@ export interface Note {
 
 export interface ProductNote {
   id: string;
-  productName: string;
+  productName: string;  // This must match exactly what's in the database
   timestamp: number;
 }
 
@@ -96,9 +97,10 @@ export const saveNote = async (text: string): Promise<Note | null> => {
 export const saveReceiptProduct = async (productName: string): Promise<ProductNote | null> => {
   console.log('Versuche Produkt zu speichern:', productName);
   
+  // Make sure the object property name matches exactly what's in the database
   const newProduct = {
     id: Date.now().toString(),
-    productName,
+    productName,  // This must match the column name in the database
     timestamp: Date.now()
   };
   
