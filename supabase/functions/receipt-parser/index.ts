@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
           useTesseract: true,
         }),
         { 
-          status: 400,
+          status: 200, // Change from 400 to 200 to avoid CORS issues
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
         useTesseract: true,
       }),
       { 
-        status: 500,
+        status: 200, // Change from 500 to 200 to avoid CORS issues
         headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );

@@ -33,19 +33,29 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
       
       // Generate suggestions based on combined products using API
       const newSuggestions = await generateMenuSuggestions(allProducts);
-      setMenuSuggestions(newSuggestions);
       
-      // Assign random images from our collection to each suggestion
-      const newImages = newSuggestions.map(() => {
-        const randomIndex = Math.floor(Math.random() * foodImages.length);
-        return foodImages[randomIndex];
-      });
-      setSuggestionImages(newImages);
-      
-      toast({
-        title: "Menüvorschläge wurden generiert",
-        description: "Neue Vorschläge wurden erfolgreich erstellt.",
-      });
+      if (newSuggestions && newSuggestions.length > 0) {
+        setMenuSuggestions(newSuggestions);
+        
+        // Assign random images from our collection to each suggestion
+        const newImages = newSuggestions.map(() => {
+          const randomIndex = Math.floor(Math.random() * foodImages.length);
+          return foodImages[randomIndex];
+        });
+        setSuggestionImages(newImages);
+        
+        toast({
+          title: "Menüvorschläge wurden generiert",
+          description: "Neue Vorschläge wurden erfolgreich erstellt.",
+        });
+      } else {
+        console.error('Keine Vorschläge erhalten');
+        toast({
+          title: "Hinweis",
+          description: "Es konnten keine Menüvorschläge generiert werden. Bitte versuche es später erneut.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
       toast({
@@ -66,7 +76,17 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     try {
       console.log('Hole Rezept für:', suggestion);
       const recipeText = await getRecipeForSuggestion(suggestion);
-      setRecipe(recipeText);
+      
+      if (recipeText && recipeText.length > 0) {
+        setRecipe(recipeText);
+      } else {
+        setRecipe('Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');
+        toast({
+          title: "Hinweis",
+          description: "Das Rezept konnte nicht geladen werden.",
+          variant: "default",
+        });
+      }
     } catch (error) {
       console.error('Fehler beim Laden des Rezepts:', error);
       setRecipe('Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');

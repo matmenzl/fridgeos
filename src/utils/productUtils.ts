@@ -41,6 +41,13 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
     // Verbesserte Fehlerbehandlung
     if (response.error) {
       console.error('Fehler bei der Generierung von Menüvorschlägen:', response.error);
+      
+      // Prüfen, ob die Antwort trotz Fehler suggestions enthält
+      if (response.data?.suggestions && Array.isArray(response.data.suggestions)) {
+        console.log('Trotz Fehler wurden Vorschläge erhalten:', response.data.suggestions);
+        return response.data.suggestions;
+      }
+      
       throw response.error;
     }
     
@@ -80,6 +87,13 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     // Verbesserte Fehlerbehandlung
     if (response.error) {
       console.error('Fehler bei der Generierung des Rezepts:', response.error);
+      
+      // Prüfen, ob die Antwort trotz Fehler ein Rezept enthält
+      if (response.data?.recipe && typeof response.data.recipe === 'string') {
+        console.log('Trotz Fehler wurde ein Rezept erhalten:', response.data.recipe.substring(0, 50) + '...');
+        return response.data.recipe;
+      }
+      
       throw response.error;
     }
     

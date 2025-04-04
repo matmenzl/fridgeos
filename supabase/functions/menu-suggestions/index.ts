@@ -21,43 +21,51 @@ serve(async (req) => {
     const contentType = req.headers.get("content-type") || "";
     console.log("Request content type:", contentType);
     
-    if (!contentType.includes("application/json")) {
-      console.error("Invalid content type:", contentType);
-      return new Response(
-        JSON.stringify({ 
-          error: `Unsupported Content-Type: ${contentType}. Expected application/json.` 
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
-    
     try {
-      const bodyText = await req.text();
-      console.log("Request body length:", bodyText.length);
-      
-      if (!bodyText || bodyText.trim().length === 0) {
-        console.error("Empty request body");
+      // Only try to parse body if the content type is JSON
+      if (contentType.includes("application/json")) {
+        const bodyText = await req.text();
+        console.log("Request body length:", bodyText.length);
+        
+        if (!bodyText || bodyText.trim().length === 0) {
+          console.error("Empty request body");
+          return new Response(
+            JSON.stringify({ 
+              error: "Empty request body",
+              suggestions: generateFallbackSuggestions([])
+            }),
+            { 
+              status: 200, // Return 200 with fallback suggestions instead of error
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            }
+          );
+        }
+        
+        try {
+          reqBody = JSON.parse(bodyText);
+          console.log("Request body parsed successfully:", JSON.stringify(reqBody));
+        } catch (e) {
+          console.error("Error parsing JSON body:", e);
+          return new Response(
+            JSON.stringify({ 
+              error: `Invalid JSON in request body: ${e.message}`,
+              suggestions: generateFallbackSuggestions([])
+            }),
+            { 
+              status: 200, // Return 200 with fallback suggestions instead of error
+              headers: { ...corsHeaders, "Content-Type": "application/json" }
+            }
+          );
+        }
+      } else {
+        console.error("Unsupported content type:", contentType);
         return new Response(
-          JSON.stringify({ error: "Empty request body" }),
+          JSON.stringify({ 
+            error: `Unsupported Content-Type: ${contentType}. Expected application/json.`,
+            suggestions: generateFallbackSuggestions([])
+          }),
           { 
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
-          }
-        );
-      }
-      
-      try {
-        reqBody = JSON.parse(bodyText);
-        console.log("Request body parsed successfully:", JSON.stringify(reqBody));
-      } catch (e) {
-        console.error("Error parsing JSON body:", e);
-        return new Response(
-          JSON.stringify({ error: `Invalid JSON in request body: ${e.message}` }),
-          { 
-            status: 400,
+            status: 200, // Return 200 with fallback suggestions instead of error
             headers: { ...corsHeaders, "Content-Type": "application/json" }
           }
         );
@@ -65,15 +73,18 @@ serve(async (req) => {
     } catch (e) {
       console.error("Error reading request body:", e);
       return new Response(
-        JSON.stringify({ error: `Failed to read request body: ${e.message}` }),
+        JSON.stringify({ 
+          error: `Failed to read request body: ${e.message}`,
+          suggestions: generateFallbackSuggestions([])
+        }),
         { 
-          status: 400,
+          status: 200, // Return 200 with fallback suggestions instead of error
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         }
       );
     }
 
-    const { products, action } = reqBody || {};
+    const { products = [], action = "getMenuSuggestions" } = reqBody || {};
     console.log("Action:", action, "Products:", Array.isArray(products) ? products.length : typeof products);
 
     if (action === "ping") {
@@ -118,11 +129,11 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ 
             error: "Keine Produkte angegeben",
-            suggestions: []
+            suggestions: generateFallbackSuggestions([])
           }),
           { 
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 // Return 200 with a message instead of 400
           }
         );
       }
@@ -165,8 +176,8 @@ serve(async (req) => {
             recipe: "Rezept konnte nicht generiert werden. Ungültiger Menüvorschlag."
           }),
           { 
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 // Return 200 with a message instead of 400
           }
         );
       }
@@ -196,10 +207,13 @@ serve(async (req) => {
     } else {
       console.error("Invalid action:", action);
       return new Response(
-        JSON.stringify({ error: "Ungültige Aktion" }),
+        JSON.stringify({ 
+          error: "Ungültige Aktion",
+          suggestions: generateFallbackSuggestions([]) 
+        }),
         { 
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200 // Return 200 with a message instead of 400
         }
       );
     }
@@ -208,12 +222,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: `Unerwarteter Fehler: ${error.message}`,
-        suggestions: [],
+        suggestions: generateFallbackSuggestions([]),
         recipe: null
       }),
       { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200 // Return 200 with error message instead of 500 
       }
     );
   }
