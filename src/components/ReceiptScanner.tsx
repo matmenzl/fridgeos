@@ -87,7 +87,15 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         description: "Bitte warte, während die Quittung gescannt wird...",
       });
 
-      const worker = await createWorker('deu');
+      // Correct initialization of the Tesseract worker with proper options
+      const worker = await createWorker({
+        logger: m => console.log(m),
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+      });
+      
+      // Load German language data
+      await worker.loadLanguage('deu');
+      await worker.initialize('deu');
       
       const result = await worker.recognize(imageUrl);
       console.log('OCR Result:', result);
