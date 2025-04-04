@@ -30,39 +30,65 @@ const ResultsList: React.FC<ResultsListProps> = ({
     <div className="space-y-2">
       <p className="text-sm font-medium">Erkannte Produkte:</p>
       <div className="max-h-64 overflow-y-auto bg-muted rounded-md p-2">
-        {results.map((item, index) => (
-          <div 
-            key={index}
-            className={`flex justify-between items-center p-2 rounded-md mb-1 ${
-              selectedItems.includes(item) ? 'bg-primary/20 border border-primary/50' : 'bg-background hover:bg-accent'
-            }`}
-          >
+        {results.map((item, index) => {
+          // Extrahiere nur den Beschreibungswert, falls es sich um ein JSON-Objekt handelt
+          let displayText = item;
+          
+          try {
+            // Versuche zu prüfen, ob es sich um ein JSON-Objekt handelt
+            if (item.includes('"description"') && (item.startsWith('{') || item.startsWith('Zeile : {'))) {
+              // Entferne "Zeile : " wenn vorhanden
+              const jsonText = item.startsWith('Zeile : ') ? item.substring(8) : item;
+              const parsed = JSON.parse(jsonText);
+              
+              // Extrahiere den description-Wert, der entweder direkt als String oder als Objekt mit value-Eigenschaft vorliegen kann
+              if (parsed.description) {
+                if (typeof parsed.description === 'object' && parsed.description.value) {
+                  displayText = parsed.description.value;
+                } else if (typeof parsed.description === 'string') {
+                  displayText = parsed.description;
+                }
+              }
+            }
+          } catch (error) {
+            // Bei Parsing-Fehlern den Originaltext behalten
+            console.log('Parsing-Fehler bei Item:', item, error);
+          }
+          
+          return (
             <div 
-              className="flex-grow cursor-pointer"
-              onClick={() => onToggleSelection(item)}
+              key={index}
+              className={`flex justify-between items-center p-2 rounded-md mb-1 ${
+                selectedItems.includes(item) ? 'bg-primary/20 border border-primary/50' : 'bg-background hover:bg-accent'
+              }`}
             >
-              <span className="text-sm">{item}</span>
+              <div 
+                className="flex-grow cursor-pointer"
+                onClick={() => onToggleSelection(item)}
+              >
+                <span className="text-sm">{displayText}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {selectedItems.includes(item) && (
+                  <Check className="h-4 w-4 text-primary" />
+                )}
+                {onRemoveItem && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 p-0.5 text-destructive" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveItem(item);
+                    }}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              {selectedItems.includes(item) && (
-                <Check className="h-4 w-4 text-primary" />
-              )}
-              {onRemoveItem && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 p-0.5 text-destructive" 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveItem(item);
-                  }}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

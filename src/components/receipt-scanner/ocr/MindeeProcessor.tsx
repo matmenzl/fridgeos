@@ -113,20 +113,25 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
         
         // Filter out obvious non-product lines
         const filteredProducts = data.products.filter(product => {
-          const lowerProduct = product.toLowerCase();
-          return (
-            product.length > 2 && 
-            !lowerProduct.includes('summe') &&
-            !lowerProduct.includes('gesamt') &&
-            !lowerProduct.includes('total') &&
-            !lowerProduct.includes('mwst') &&
-            !lowerProduct.includes('ust') &&
-            !lowerProduct.includes('rechnung') &&
-            !lowerProduct.includes('beleg') &&
-            !lowerProduct.includes('quittung') &&
-            !lowerProduct.match(/^\d+([,.]\d{2})?$/) && // Exclude price-only lines
-            !lowerProduct.match(/^\d{2}[.:]\d{2}[.:]\d{4}$/) // Exclude date-only lines
-          );
+          // Wenn es bereits ein String ist, behalte die ursprüngliche Filterlogik
+          if (typeof product === 'string') {
+            const lowerProduct = product.toLowerCase();
+            return (
+              product.length > 2 && 
+              !lowerProduct.includes('summe') &&
+              !lowerProduct.includes('gesamt') &&
+              !lowerProduct.includes('total') &&
+              !lowerProduct.includes('mwst') &&
+              !lowerProduct.includes('ust') &&
+              !lowerProduct.includes('rechnung') &&
+              !lowerProduct.includes('beleg') &&
+              !lowerProduct.includes('quittung') &&
+              !lowerProduct.match(/^\d+([,.]\d{2})?$/) && // Exclude price-only lines
+              !lowerProduct.match(/^\d{2}[.:]\d{2}[.:]\d{4}$/) // Exclude date-only lines
+            );
+          }
+          // Wenn es ein Objekt ist, behalte es einfach
+          return true;
         });
         
         console.log('Gefilterte Produkte:', filteredProducts);
