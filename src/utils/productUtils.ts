@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
@@ -38,17 +37,10 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
       }
     });
     
-    // Verbesserte Fehlerbehandlung
-    if (response.error) {
+    // Check if we got any response data at all
+    if (!response.data && response.error) {
       console.error('Fehler bei der Generierung von Menüvorschlägen:', response.error);
-      
-      // Prüfen, ob die Antwort trotz Fehler suggestions enthält
-      if (response.data?.suggestions && Array.isArray(response.data.suggestions)) {
-        console.log('Trotz Fehler wurden Vorschläge erhalten:', response.data.suggestions);
-        return response.data.suggestions;
-      }
-      
-      throw response.error;
+      return fallbackMenuSuggestions(products);
     }
     
     // Wenn die Antwort ein data Objekt mit Vorschlägen enthält

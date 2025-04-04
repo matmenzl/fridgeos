@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import OpenAI from "https://deno.land/x/openai@v4.16.1/mod.ts";
@@ -28,15 +27,13 @@ serve(async (req) => {
         console.log("Request body length:", bodyText.length);
         
         if (!bodyText || bodyText.trim().length === 0) {
-          console.error("Empty request body");
+          console.log("Empty request body - handling ping");
+          // For empty body requests, handle as a ping
           return new Response(
-            JSON.stringify({ 
-              error: "Empty request body",
-              suggestions: generateFallbackSuggestions([])
-            }),
+            JSON.stringify({ status: "ok" }),
             { 
-              status: 200, // Return 200 with fallback suggestions instead of error
-              headers: { ...corsHeaders, "Content-Type": "application/json" }
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200
             }
           );
         }

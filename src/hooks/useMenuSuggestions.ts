@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { extractProductNames, generateMenuSuggestions, getRecipeForSuggestion } from "../utils/productUtils";
@@ -20,24 +19,17 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     setIsLoading(true);
     
     try {
-      // Extract products from notes
       const notesProducts = extractProductNames(notes);
-      
-      // Extract products from receipt products
       const receiptProductNames = receiptProducts.map(product => product.productName);
-      
-      // Combine both product lists
       const allProducts = [...notesProducts, ...receiptProductNames];
       
       console.log('Generiere Menüvorschläge für:', allProducts);
       
-      // Generate suggestions based on combined products using API
       const newSuggestions = await generateMenuSuggestions(allProducts);
       
       if (newSuggestions && newSuggestions.length > 0) {
         setMenuSuggestions(newSuggestions);
         
-        // Assign random images from our collection to each suggestion
         const newImages = newSuggestions.map(() => {
           const randomIndex = Math.floor(Math.random() * foodImages.length);
           return foodImages[randomIndex];
@@ -101,7 +93,6 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     }
   };
 
-  // Check if the Edge function is available
   const checkSupabaseFunction = async () => {
     try {
       console.log('Überprüfe, ob die Edge-Funktion verfügbar ist');
@@ -115,6 +106,10 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
       
       if (response.error) {
         console.error('Edge-Funktion nicht verfügbar:', response.error);
+        if (response.data && Object.keys(response.data).length > 0) {
+          console.log('Edge-Funktion ist verfügbar, aber hat einen Fehler zurückgegeben:', response.data);
+          return true;
+        }
         return false;
       }
       
@@ -130,7 +125,6 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     const generateSuggestions = async () => {
       if (notes.length > 0 || receiptProducts.length > 0) {
         try {
-          // Check if the Edge function is available
           const isFunctionAvailable = await checkSupabaseFunction();
           
           if (isFunctionAvailable) {
@@ -138,12 +132,10 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
             await regenerateSuggestions();
           } else {
             console.log('Edge-Funktion ist nicht verfügbar, verwende Fallback');
-            // We'll still try to generate suggestions, the productUtils will handle the fallback
             await regenerateSuggestions();
           }
         } catch (error) {
           console.error('Fehler beim Prüfen der Edge-Funktion:', error);
-          // Try regenerating suggestions anyway, the fallback should handle failures
           await regenerateSuggestions();
         }
       }
