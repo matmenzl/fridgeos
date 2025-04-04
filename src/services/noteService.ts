@@ -54,6 +54,6 @@ export const updateNote = async (id: string, newText: string): Promise<Note | nu
 };
 
 export const migrateNotesToSupabase = async (): Promise<boolean> => {
-  const localNotes = noteService.getFromLocalStorage();
+  const localNotes = await getAllNotes();
   return noteService.migrateToSupabase(localNotes);
 };

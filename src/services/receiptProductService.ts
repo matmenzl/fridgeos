@@ -56,6 +56,6 @@ export const updateReceiptProduct = async (id: string, productName: string): Pro
 };
 
 export const migrateReceiptProductsToSupabase = async (): Promise<boolean> => {
-  const localProducts = receiptProductService.getFromLocalStorage();
+  const localProducts = await getAllReceiptProducts();
   return receiptProductService.migrateToSupabase(localProducts);
 };

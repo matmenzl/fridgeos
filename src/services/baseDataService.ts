@@ -6,14 +6,17 @@ export interface BaseItem {
   timestamp: number;
 }
 
+// Define a generic type for the database tables we interact with
+type SupabaseTable = 'notes' | 'receipt_products';
+
 export class BaseDataService<T extends BaseItem, DbItem> {
-  private tableName: string;
+  private tableName: SupabaseTable;
   private localStorageKey: string;
   private mapFromDb: (dbItem: any) => T;
   private mapToDb: (item: T) => Omit<DbItem, 'id'>;
 
   constructor(
-    tableName: string, 
+    tableName: SupabaseTable, 
     localStorageKey: string,
     mapFromDb: (dbItem: any) => T,
     mapToDb: (item: T) => Omit<DbItem, 'id'>
@@ -60,9 +63,10 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     try {
       // Map to database format and insert into Supabase
       const dataForDb = this.mapToDb(newItem);
+      
       const { data, error } = await supabase
         .from(this.tableName)
-        .insert([dataForDb])
+        .insert([dataForDb as any])
         .select('id')
         .single();
       
@@ -94,7 +98,7 @@ export class BaseDataService<T extends BaseItem, DbItem> {
       
       const { data, error } = await supabase
         .from(this.tableName)
-        .update(updateObj)
+        .update(updateObj as any)
         .eq('id', id)
         .select()
         .single();
@@ -191,7 +195,7 @@ export class BaseDataService<T extends BaseItem, DbItem> {
       // Insert items in Supabase
       const { error } = await supabase
         .from(this.tableName)
-        .insert(itemsForSupabase);
+        .insert(itemsForSupabase as any[]);
       
       if (error) {
         console.error(`Error migrating items to ${this.tableName}:`, error);
