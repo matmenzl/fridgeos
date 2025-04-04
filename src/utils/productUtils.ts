@@ -5,6 +5,19 @@ export const extractProductNames = (notes: { text: string }[]): string[] => {
   return notes.map(note => note.text.split(',')[0].trim());
 };
 
+// API-Schlüssel-Verwaltungsfunktionen
+export const getOpenAiApiKey = (): string | null => {
+  return localStorage.getItem('openai_api_key');
+};
+
+export const saveOpenAiApiKey = (apiKey: string): void => {
+  localStorage.setItem('openai_api_key', apiKey);
+};
+
+export const removeOpenAiApiKey = (): void => {
+  localStorage.removeItem('openai_api_key');
+};
+
 export const generateMenuSuggestions = async (products: string[]): Promise<string[]> => {
   if (products.length === 0) return [];
   
@@ -26,7 +39,7 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('openai_api_key') || ''}`
+        'Authorization': `Bearer ${getOpenAiApiKey() || ''}`
       },
       body: JSON.stringify({
         model: 'gpt-3.5-turbo',

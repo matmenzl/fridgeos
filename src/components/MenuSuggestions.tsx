@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shuffle, Image as ImageIcon, Refrigerator, Wifi, AlertCircle, LoaderCircle } from "lucide-react";
-import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
+import { extractProductNames, generateMenuSuggestions, getOpenAiApiKey, saveOpenAiApiKey } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,12 +30,12 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   const [suggestionImages, setSuggestionImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
+  const [apiKey, setApiKey] = useState(getOpenAiApiKey() || '');
   const { toast } = useToast();
   
   const regenerateSuggestions = async () => {
     // Check if we have an API key
-    if (!localStorage.getItem('openai_api_key')) {
+    if (!getOpenAiApiKey()) {
       setApiKeyDialogOpen(true);
       return;
     }
@@ -81,7 +81,7 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   
   const saveApiKey = () => {
     if (apiKey.trim()) {
-      localStorage.setItem('openai_api_key', apiKey.trim());
+      saveOpenAiApiKey(apiKey.trim());
       setApiKeyDialogOpen(false);
       toast({
         title: "API-Schlüssel gespeichert",
@@ -99,7 +99,7 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   
   useEffect(() => {
     const generateSuggestions = async () => {
-      if ((notes.length > 0 || receiptProducts.length > 0) && localStorage.getItem('openai_api_key')) {
+      if ((notes.length > 0 || receiptProducts.length > 0) && getOpenAiApiKey()) {
         await regenerateSuggestions();
       }
     };
