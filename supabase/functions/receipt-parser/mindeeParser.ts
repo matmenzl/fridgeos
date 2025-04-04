@@ -97,8 +97,8 @@ function extractProductNames(items: LineItem[]): string[] {
       // Description can be in different formats
       return (
         (item.description && 
-          (typeof item.description === 'object' && item.description.value && item.description.value !== 'string') || 
-          (typeof item.description === 'string' && item.description !== 'string')
+          ((typeof item.description === 'object' && item.description.value) || 
+           (typeof item.description === 'string' && item.description.length > 0))
         ) ||
         item.product_code || 
         item.product_type || 
@@ -107,41 +107,58 @@ function extractProductNames(items: LineItem[]): string[] {
       );
     })
     .map(item => {
-      // Try to get description first
+      // First check for description - it can be either a string or an object with value
       if (item.description) {
-        if (typeof item.description === 'object' && item.description.value && item.description.value !== 'string') {
+        if (typeof item.description === 'object' && item.description.value) {
+          // If it's "string" (the literal word), treat it as a placeholder and use alternative
+          if (item.description.value === "string") {
+            return createAlternativeDescription(item);
+          }
           return item.description.value;
-        } else if (typeof item.description === 'string' && item.description !== 'string') {
+        } else if (typeof item.description === 'string') {
+          // If it's "string" (the literal word), treat it as a placeholder and use alternative
+          if (item.description === "string") {
+            return createAlternativeDescription(item);
+          }
           return item.description;
         }
       }
       
-      // Fallbacks in priority order
-      if (item.product_code) {
-        return typeof item.product_code === 'object' ? item.product_code.value : item.product_code;
-      }
-      if (item.product_type) {
-        return typeof item.product_type === 'object' ? item.product_type.value : item.product_type;
-      }
-      
-      // If no description, create one from available data
-      const amount = item.total_amount ? 
-        (typeof item.total_amount === 'object' ? item.total_amount.value : item.total_amount) : 
-        null;
-      
-      const quantity = item.quantity ? 
-        (typeof item.quantity === 'object' ? item.quantity.value : item.quantity) : 
-        null;
-        
-      if (quantity && amount) {
-        return `Artikel (${quantity} Stück, ${amount}€)`;
-      } else if (amount) {
-        return `Artikel für ${amount}€`;
-      }
-      
-      // Last resort: generic product name
-      return "Artikel auf Kassenbon";
+      return createAlternativeDescription(item);
     });
+}
+
+/**
+ * Creates alternative description when the primary one is missing or is a placeholder
+ */
+function createAlternativeDescription(item: LineItem): string {
+  // Try product code first
+  if (item.product_code) {
+    return typeof item.product_code === 'object' ? item.product_code.value : item.product_code;
+  }
+  
+  // Then product type
+  if (item.product_type) {
+    return typeof item.product_type === 'object' ? item.product_type.value : item.product_type;
+  }
+  
+  // Create description from quantity and price
+  const amount = item.total_amount ? 
+    (typeof item.total_amount === 'object' ? item.total_amount.value : item.total_amount) : 
+    null;
+  
+  const quantity = item.quantity ? 
+    (typeof item.quantity === 'object' ? item.quantity.value : item.quantity) : 
+    null;
+    
+  if (quantity && amount) {
+    return `Artikel (${quantity} Stück, ${amount}€)`;
+  } else if (amount) {
+    return `Artikel für ${amount}€`;
+  }
+  
+  // Last resort: generic product name
+  return "Artikel auf Kassenbon";
 }
 
 /**

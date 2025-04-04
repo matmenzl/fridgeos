@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Check, Trash } from "lucide-react";
 import { Button } from '@/components/ui/button';
@@ -30,12 +31,12 @@ const ResultsList: React.FC<ResultsListProps> = ({
       <p className="text-sm font-medium">Erkannte Produkte:</p>
       <div className="max-h-64 overflow-y-auto bg-muted rounded-md p-2">
         {results.map((item, index) => {
-          // Extract just the description value if it's a JSON object
+          // Display text extraction logic
           let displayText = item;
           
           try {
-            // Check if it's a JSON object
-            if (item.includes('"description"') && (item.startsWith('{') || item.startsWith('Zeile : {'))) {
+            // Check if it's a JSON string
+            if (item.startsWith('{') || item.startsWith('Zeile : {')) {
               // Remove "Zeile : " if present
               const jsonText = item.startsWith('Zeile : ') ? item.substring(8) : item;
               const parsed = JSON.parse(jsonText);
@@ -47,6 +48,28 @@ const ResultsList: React.FC<ResultsListProps> = ({
                 } else if (typeof parsed.description === 'string') {
                   displayText = parsed.description;
                 }
+              } else {
+                // If no description, try to create a meaningful display from other fields
+                if (parsed.product_code) {
+                  displayText = typeof parsed.product_code === 'object' ? 
+                    parsed.product_code.value : parsed.product_code;
+                } else if (parsed.product_type) {
+                  displayText = typeof parsed.product_type === 'object' ? 
+                    parsed.product_type.value : parsed.product_type;
+                } else if (parsed.total_amount) {
+                  const amount = typeof parsed.total_amount === 'object' ? 
+                    parsed.total_amount.value : parsed.total_amount;
+                  displayText = `Artikel für ${amount}€`;
+                } else {
+                  displayText = "Unbekannter Artikel";
+                }
+              }
+            }
+            // If the string contains "description" but isn't valid JSON, try to extract it directly
+            else if (item.includes('"description"')) {
+              const descMatch = item.match(/"description"\s*:\s*"([^"]+)"/);
+              if (descMatch && descMatch[1]) {
+                displayText = descMatch[1];
               }
             }
           } catch (error) {
