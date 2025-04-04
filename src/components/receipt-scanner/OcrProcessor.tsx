@@ -112,7 +112,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
         preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: '6', // Assume a single uniform block of text
+        tessedit_pageseg_mode: 6, // Assume a single uniform block of text - using number instead of string
       });
       
       const result = await worker.recognize(imageUrl);
