@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingBag, Trash, Mic, Edit, Plus, Minus } from "lucide-react";
+import { ShoppingBag, Trash, Mic, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note, ProductNote, deleteNote } from '../services/noteStorage';
 import { Card } from '@/components/ui/card';
@@ -63,15 +63,6 @@ const ProductList: React.FC<ProductListProps> = ({
                 <ShoppingBag className="h-4 w-4 text-primary" />
               )}
               <h3 className="text-xl font-bold">{name}</h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="text-lg font-medium">500</span>
-              <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-                <Plus className="h-4 w-4" />
-              </Button>
             </div>
           </div>
           
