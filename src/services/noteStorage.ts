@@ -22,7 +22,8 @@ export {
   saveNote,
   getAllNotes,
   deleteNote,
-  updateNote
+  updateNote,
+  migrateNotesToSupabase
 } from './noteService';
 
 // Re-export receipt product functions
@@ -30,5 +31,6 @@ export {
   saveReceiptProduct,
   getAllReceiptProducts,
   deleteReceiptProduct,
-  updateReceiptProduct
+  updateReceiptProduct,
+  migrateReceiptProductsToSupabase
 } from './receiptProductService';

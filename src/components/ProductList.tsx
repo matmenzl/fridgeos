@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductListProps {
   notes: Note[];
@@ -26,7 +27,7 @@ const ProductList: React.FC<ProductListProps> = ({
   onReceiptProductDelete,
   onProductUpdate
 }) => {
-  // State for the edit dialog
+  // State für den Edit-Dialog
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [currentEditProduct, setCurrentEditProduct] = useState<{
     id: string;
@@ -38,32 +39,33 @@ const ProductList: React.FC<ProductListProps> = ({
     isVoiceNote: false
   });
 
-  // State for category filtering
+  // State für die Kategorie-Filterung
   const [selectedCategories, setSelectedCategories] = useState<FoodCategory[]>([]);
   const allCategories = getAllFoodCategories();
+  const { toast } = useToast();
 
-  // Show empty state if no products
+  // Leeren Zustand anzeigen, wenn keine Produkte vorhanden sind
   if (notes.length === 0 && receiptProducts.length === 0) {
     return <EmptyProductList />;
   }
 
-  // Handler for receipt product deletion
+  // Handler für die Löschung eines Kassenbeleg-Produkts
   const handleProductDelete = (productId: string) => {
-    console.log(`ProductList - Deleting product with ID: ${productId}`);
-    console.log(`Available products before delete:`, receiptProducts.map(p => p.id));
+    console.log(`ProductList - Produkt mit ID löschen: ${productId}`);
+    console.log(`Verfügbare Produkte vor dem Löschen:`, receiptProducts.map(p => p.id));
     onReceiptProductDelete(productId);
   };
 
-  // Handler for voice note deletion
-  const handleNoteDelete = (noteId: string) => {
-    console.log(`ProductList - Deleting voice note with ID: ${noteId}`);
-    deleteNote(noteId);
+  // Handler für die Löschung einer Sprachnotiz
+  const handleNoteDelete = async (noteId: string) => {
+    console.log(`ProductList - Sprachnotiz mit ID löschen: ${noteId}`);
+    await deleteNote(noteId);
     onNoteDelete(noteId);
   };
 
-  // Handler for edit button click
+  // Handler für den Klick auf die Bearbeiten-Schaltfläche
   const handleEditClick = (id: string, name: string, isVoice: boolean) => {
-    // Ensure the name is cleaned before showing in the editor
+    // Name vor der Anzeige im Editor bereinigen
     const cleanedName = cleanProductName(name);
     
     setCurrentEditProduct({
@@ -74,21 +76,35 @@ const ProductList: React.FC<ProductListProps> = ({
     setEditDialogOpen(true);
   };
 
-  // Handler for saving edited product
-  const handleEditSave = (data: any) => {
-    console.log('Saving edited product:', data);
+  // Handler zum Speichern eines bearbeiteten Produkts
+  const handleEditSave = async (data: any) => {
+    console.log('Bearbeitetes Produkt speichern:', data);
     
-    if (data.isVoiceNote) {
-      const formattedText = `Produkt: ${data.product}`;
-      updateNote(data.id, formattedText);
-    } else {
-      updateReceiptProduct(data.id, data.product);
+    try {
+      if (data.isVoiceNote) {
+        const formattedText = `Produkt: ${data.product}`;
+        await updateNote(data.id, formattedText);
+      } else {
+        await updateReceiptProduct(data.id, data.product);
+      }
+      
+      onProductUpdate();
+      
+      toast({
+        title: "Produkt aktualisiert",
+        description: "Das Produkt wurde erfolgreich aktualisiert.",
+      });
+    } catch (error) {
+      console.error('Fehler beim Aktualisieren des Produkts:', error);
+      toast({
+        title: "Fehler",
+        description: "Beim Aktualisieren des Produkts ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
     }
-    
-    onProductUpdate();
   };
 
-  // Process voice notes for display
+  // Sprachnotizen für die Anzeige verarbeiten
   const processedNotes = notes
     .sort((a, b) => b.timestamp - a.timestamp)
     .map(note => {
@@ -97,7 +113,7 @@ const ProductList: React.FC<ProductListProps> = ({
         displayText = displayText.split('\n')[0].replace('Produkt:', '').trim();
       }
       
-      // Clean the product name
+      // Produktname bereinigen
       const cleanedName = cleanProductName(displayText);
       const category = categorizeFoodItem(cleanedName);
       
@@ -109,11 +125,11 @@ const ProductList: React.FC<ProductListProps> = ({
       };
     });
 
-  // Process receipt products for display
+  // Kassenbeleg-Produkte für die Anzeige verarbeiten
   const processedReceiptProducts = receiptProducts
     .sort((a, b) => b.timestamp - a.timestamp)
     .map(product => {
-      // Clean the product name - apply rigorous cleaning
+      // Produktname gründlich bereinigen
       const cleanedName = cleanProductName(product.productName);
       const category = categorizeFoodItem(cleanedName);
       
@@ -125,13 +141,13 @@ const ProductList: React.FC<ProductListProps> = ({
       };
     });
 
-  // Filter products by selected categories
+  // Produkte nach ausgewählten Kategorien filtern
   const filteredProducts = [...processedNotes, ...processedReceiptProducts].filter(item => {
-    if (selectedCategories.length === 0) return true; // Show all if no filter is applied
+    if (selectedCategories.length === 0) return true; // Alle anzeigen, wenn kein Filter angewendet wird
     return selectedCategories.includes(item.category);
   });
 
-  // Toggle category selection
+  // Kategorieauswahl umschalten
   const toggleCategory = (category: FoodCategory) => {
     setSelectedCategories(current => {
       if (current.includes(category)) {
@@ -142,14 +158,14 @@ const ProductList: React.FC<ProductListProps> = ({
     });
   };
 
-  // Clear all filters
+  // Alle Filter zurücksetzen
   const clearFilters = () => {
     setSelectedCategories([]);
   };
 
   return (
     <div className="space-y-4">
-      {/* Category filter */}
+      {/* Kategorie-Filter */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Filter nach Kategorie:</span>

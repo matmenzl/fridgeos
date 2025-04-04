@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
+import { Note, ProductNote, deleteReceiptProduct, getAllNotes, getAllReceiptProducts, saveNote, migrateNotesToSupabase, migrateReceiptProductsToSupabase } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/receipt-scanner/ReceiptScanner';
@@ -8,46 +8,97 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import PageHeader from '../components/PageHeader';
 import ActionButtons from '../components/ActionButtons';
 import ProductList from '../components/ProductList';
+import { Button } from "@/components/ui/button";
+import { Database } from "../integrations/supabase/client";
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [receiptProducts, setReceiptProducts] = useState<ProductNote[]>([]);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [scannerDialogOpen, setScannerDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMigrated, setHasMigrated] = useState<boolean>(localStorage.getItem('dataMigratedToSupabase') === 'true');
   const { toast } = useToast();
 
   useEffect(() => {
-    loadNotes();
-    loadReceiptProducts();
+    loadData();
   }, []);
 
-  const loadNotes = () => {
-    console.log("Loading notes...");
-    const savedNotes = getAllNotes();
-    console.log("Loaded notes count:", savedNotes.length);
-    setNotes(savedNotes);
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      console.log("Daten aus Supabase laden...");
+      const notesData = await getAllNotes();
+      const productsData = await getAllReceiptProducts();
+      
+      console.log("Geladene Notizen:", notesData.length);
+      console.log("Geladene Produkte:", productsData.length);
+      
+      setNotes(notesData);
+      setReceiptProducts(productsData);
+    } catch (error) {
+      console.error("Fehler beim Laden der Daten:", error);
+      toast({
+        title: "Fehler beim Laden",
+        description: "Daten konnten nicht geladen werden. Bitte versuche es später erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const loadReceiptProducts = () => {
-    console.log("Loading receipt products...");
-    const savedProducts = getAllReceiptProducts();
-    console.log("Loaded receipt products count:", savedProducts.length);
-    setReceiptProducts(savedProducts);
+  const migrateDataToSupabase = async () => {
+    try {
+      toast({
+        title: "Migration gestartet",
+        description: "Deine Daten werden von localStorage zu Supabase migriert...",
+      });
+      
+      const notesMigrated = await migrateNotesToSupabase();
+      const productsMigrated = await migrateReceiptProductsToSupabase();
+      
+      if (notesMigrated && productsMigrated) {
+        localStorage.setItem('dataMigratedToSupabase', 'true');
+        setHasMigrated(true);
+        
+        // Daten neu laden
+        await loadData();
+        
+        toast({
+          title: "Migration erfolgreich",
+          description: "Deine Daten wurden erfolgreich zu Supabase migriert.",
+        });
+      } else {
+        toast({
+          title: "Migration teilweise fehlgeschlagen",
+          description: "Einige Daten konnten nicht migriert werden. Bitte versuche es später erneut.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Fehler bei der Migration:", error);
+      toast({
+        title: "Migration fehlgeschlagen",
+        description: "Bei der Migration ist ein Fehler aufgetreten. Bitte versuche es später erneut.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleProductSave = (data: { text: string, metadata: any }) => {
-    console.log("Saving product:", data);
+  const handleProductSave = async (data: { text: string, metadata: any }) => {
+    console.log("Produkt speichern:", data);
     if (data.metadata.product && data.metadata.product.trim()) {
       const productName = data.metadata.product.trim();
-      console.log("Saving product name:", productName);
-      saveNote(productName);
-      loadNotes();
+      console.log("Produktname speichern:", productName);
+      await saveNote(productName);
+      await loadNotes();
       toast({
         title: "Produkt gespeichert",
         description: `"${productName}" wurde erfolgreich gespeichert.`,
       });
     } else {
-      console.error("No product name found in:", data);
+      console.error("Kein Produktname gefunden in:", data);
       toast({
         title: "Fehler",
         description: "Beim Speichern des Produkts ist ein Fehler aufgetreten.",
@@ -56,20 +107,31 @@ const Index = () => {
     }
   };
 
-  const handleDeleteReceiptProduct = (id: string) => {
-    console.log("Deleting receipt product:", id);
-    console.log("Current receipt products:", receiptProducts);
+  const loadNotes = async () => {
+    console.log("Notizen laden...");
+    const savedNotes = await getAllNotes();
+    console.log("Geladene Notizen:", savedNotes.length);
+    setNotes(savedNotes);
+  };
+
+  const loadReceiptProducts = async () => {
+    console.log("Kassenbeleg-Produkte laden...");
+    const savedProducts = await getAllReceiptProducts();
+    console.log("Geladene Kassenbeleg-Produkte:", savedProducts.length);
+    setReceiptProducts(savedProducts);
+  };
+
+  const handleDeleteReceiptProduct = async (id: string) => {
+    console.log("Kassenbeleg-Produkt löschen:", id);
+    console.log("Aktuelle Kassenbeleg-Produkte:", receiptProducts);
     
-    // Store products before deletion
-    const productsBefore = [...receiptProducts];
+    // Produkt aus der Datenbank löschen
+    await deleteReceiptProduct(id);
     
-    // Delete the product
-    deleteReceiptProduct(id);
-    
-    // Update the state by correctly filtering only the product with matching ID
+    // State aktualisieren
     setReceiptProducts(prevProducts => {
       const newProducts = prevProducts.filter(product => product.id !== id);
-      console.log(`Filtered products: Before: ${prevProducts.length}, After: ${newProducts.length}`);
+      console.log(`Gefilterte Produkte: Vorher: ${prevProducts.length}, Nachher: ${newProducts.length}`);
       return newProducts;
     });
     
@@ -79,11 +141,11 @@ const Index = () => {
     });
   };
 
-  const updateProductLists = () => {
-    console.log("Updating product lists after receipt scan or edit");
-    // This function refreshes both notes and receipt products
-    loadNotes();
-    loadReceiptProducts();
+  const updateProductLists = async () => {
+    console.log("Produktlisten nach Quittungsscan oder Bearbeitung aktualisieren");
+    // Diese Funktion aktualisiert sowohl Notizen als auch Kassenbeleg-Produkte
+    await loadNotes();
+    await loadReceiptProducts();
     
     toast({
       title: "Produkt aktualisiert",
@@ -92,17 +154,17 @@ const Index = () => {
   };
 
   const handleNoteDelete = (noteId: string) => {
-    console.log("Index - Note deleted, ID:", noteId);
+    console.log("Index - Notiz gelöscht, ID:", noteId);
     
-    // Update the notes state by filtering out only the deleted note
+    // Notiz-State aktualisieren
     setNotes(currentNotes => {
       const filteredNotes = currentNotes.filter(note => {
         const keep = note.id !== noteId;
-        console.log(`Note ${note.id} keep? ${keep} (comparing with ${noteId})`);
+        console.log(`Notiz ${note.id} behalten? ${keep} (Vergleich mit ${noteId})`);
         return keep;
       });
       
-      console.log("Notes after filtering:", filteredNotes.map(n => n.id));
+      console.log("Notizen nach Filterung:", filteredNotes.map(n => n.id));
       return filteredNotes;
     });
     
@@ -117,6 +179,28 @@ const Index = () => {
       <PageHeader />
 
       <div className="px-4 md:px-6">
+        {!hasMigrated && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+            <div className="flex">
+              <div className="flex-1">
+                <p className="text-sm text-yellow-700">
+                  Du hast lokale Daten im Browser gespeichert. Möchtest du diese zu Supabase migrieren?
+                </p>
+              </div>
+              <div className="ml-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={migrateDataToSupabase}
+                  className="text-yellow-700 border-yellow-400"
+                >
+                  Jetzt migrieren
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ActionButtons 
           onProductDialogOpen={() => setProductDialogOpen(true)}
           onScannerDialogOpen={() => setScannerDialogOpen(true)}
@@ -124,15 +208,21 @@ const Index = () => {
 
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Erfasste Lebensmittel</h2>
         
-        <div className="mb-8">
-          <ProductList 
-            notes={notes}
-            receiptProducts={receiptProducts}
-            onNoteDelete={handleNoteDelete}
-            onReceiptProductDelete={handleDeleteReceiptProduct}
-            onProductUpdate={updateProductLists}
-          />
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+          </div>
+        ) : (
+          <div className="mb-8">
+            <ProductList 
+              notes={notes}
+              receiptProducts={receiptProducts}
+              onNoteDelete={handleNoteDelete}
+              onReceiptProductDelete={handleDeleteReceiptProduct}
+              onProductUpdate={updateProductLists}
+            />
+          </div>
+        )}
         
         <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
