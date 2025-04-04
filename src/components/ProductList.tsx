@@ -5,7 +5,7 @@ import EditProductDialog from './product-capture/EditProductDialog';
 import ProductCard from './product/ProductCard';
 import EmptyProductList from './product/EmptyProductList';
 import { cleanProductName } from '../utils/productNameCleaner';
-import { FoodCategory, categorizeFoodItem, getAllFoodCategories } from '../utils/foodCategorization';
+import { FoodCategory, categorizeFoodItem, getAllFoodCategories } from '../utils/foodCategories';
 import { Badge } from '@/components/ui/badge';
 import { Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
