@@ -1,14 +1,5 @@
 
 import React from 'react';
-import { Link } from "react-router-dom";
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 
 const PageHeader = () => {
   return (
@@ -17,22 +8,6 @@ const PageHeader = () => {
         <h1 className="text-2xl font-bold text-gray-900">Lebensmittel-Tracker</h1>
         <p className="text-gray-500 text-sm">Behalte den Überblick über deine Lebensmittel</p>
       </div>
-      
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" asChild className="relative">
-              <Link to="/admin">
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">Einstellungen</span>
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Admin-Bereich</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
     </header>
   );
 };
