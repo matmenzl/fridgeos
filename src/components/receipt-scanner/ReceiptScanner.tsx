@@ -70,30 +70,44 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const saveSelectedItems = async () => {
     if (selectedItems.length > 0) {
-      // Save all selected products
-      const savePromises = selectedItems.map(item => {
-        const cleanedItem = cleanProductName(item);
-        return saveReceiptProduct(cleanedItem);
-      });
+      console.log("Saving selected receipt items:", selectedItems.length);
       
-      // Wait for all products to be saved
-      await Promise.all(savePromises);
-      
-      toast({
-        title: "Produkte gespeichert",
-        description: `${selectedItems.length} Produkte wurden gespeichert.`,
-      });
-      
-      // Notify parent component that products have been updated
-      if (onProductsUpdated) {
-        onProductsUpdated();
+      try {
+        // Save all selected products with current timestamp
+        const currentTimestamp = Date.now();
+        const savePromises = selectedItems.map(item => {
+          const cleanedItem = cleanProductName(item);
+          console.log("Saving receipt product with timestamp:", currentTimestamp, cleanedItem);
+          return saveReceiptProduct(cleanedItem);
+        });
+        
+        // Wait for all products to be saved
+        await Promise.all(savePromises);
+        
+        toast({
+          title: "Produkte gespeichert",
+          description: `${selectedItems.length} Produkte wurden gespeichert.`,
+        });
+        
+        // Reset state and close dialog
+        onOpenChange(false);
+        setImageUrl(null);
+        setResults([]);
+        setSelectedItems([]);
+        
+        // Notify parent component that products have been updated
+        if (onProductsUpdated) {
+          console.log("Calling onProductsUpdated after saving receipt products");
+          onProductsUpdated();
+        }
+      } catch (error) {
+        console.error("Error saving receipt products:", error);
+        toast({
+          title: "Fehler beim Speichern",
+          description: "Es ist ein Fehler beim Speichern der Produkte aufgetreten.",
+          variant: "destructive",
+        });
       }
-      
-      // Reset state and close dialog
-      onOpenChange(false);
-      setImageUrl(null);
-      setResults([]);
-      setSelectedItems([]);
     } else {
       toast({
         title: "Keine Produkte ausgewählt",

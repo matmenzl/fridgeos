@@ -41,8 +41,16 @@ const receiptProductService = new ReceiptProductService();
 
 // Export the service functions
 export const saveReceiptProduct = async (productName: string): Promise<ProductNote> => {
-  const newProduct = await receiptProductService.create({ productName, timestamp: Date.now() });
-  console.log(`Produkt mit ID: ${newProduct.id} gespeichert`);
+  // Ensure we always use the current timestamp when saving a receipt product
+  const currentTimestamp = Date.now();
+  console.log(`Saving receipt product "${productName}" with timestamp: ${currentTimestamp}`);
+  
+  const newProduct = await receiptProductService.create({ 
+    productName, 
+    timestamp: currentTimestamp 
+  });
+  
+  console.log(`Product saved with ID: ${newProduct.id} and timestamp: ${newProduct.timestamp}`);
   return newProduct;
 };
 
@@ -51,7 +59,7 @@ export const getAllReceiptProducts = async (): Promise<ProductNote[]> => {
 };
 
 export const deleteReceiptProduct = async (id: string): Promise<void> => {
-  console.log(`Versuche, Produkt mit ID: ${id} zu löschen`);
+  console.log(`Attempting to delete product with ID: ${id}`);
   return receiptProductService.delete(id);
 };
 

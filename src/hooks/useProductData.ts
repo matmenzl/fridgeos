@@ -12,20 +12,24 @@ export const useProductData = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      console.log("Daten aus Supabase laden...");
+      console.log("Loading data from Supabase...");
       const notesData = await getAllNotes();
       const productsData = await getAllReceiptProducts();
       
-      console.log("Geladene Notizen:", notesData.length);
-      console.log("Geladene Produkte:", productsData.length);
+      console.log("Loaded notes:", notesData.length);
+      console.log("Loaded receipt products:", productsData.length);
       
-      setNotes(notesData);
-      setReceiptProducts(productsData);
+      // Sort items by timestamp (newest first) as soon as we get them
+      const sortedNotes = notesData.sort((a, b) => b.timestamp - a.timestamp);
+      const sortedProducts = productsData.sort((a, b) => b.timestamp - a.timestamp);
+      
+      setNotes(sortedNotes);
+      setReceiptProducts(sortedProducts);
     } catch (error) {
-      console.error("Fehler beim Laden der Daten:", error);
+      console.error("Error loading data:", error);
       toast({
-        title: "Fehler beim Laden",
-        description: "Daten konnten nicht geladen werden. Bitte versuche es später erneut.",
+        title: "Error loading",
+        description: "Data could not be loaded. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -34,67 +38,71 @@ export const useProductData = () => {
   };
 
   const loadNotes = async () => {
-    console.log("Notizen laden...");
+    console.log("Loading notes...");
     const savedNotes = await getAllNotes();
-    console.log("Geladene Notizen:", savedNotes.length);
-    setNotes(savedNotes);
+    console.log("Loaded notes:", savedNotes.length);
+    // Sort by timestamp (newest first)
+    const sortedNotes = savedNotes.sort((a, b) => b.timestamp - a.timestamp);
+    setNotes(sortedNotes);
   };
 
   const loadReceiptProducts = async () => {
-    console.log("Kassenbeleg-Produkte laden...");
+    console.log("Loading receipt products...");
     const savedProducts = await getAllReceiptProducts();
-    console.log("Geladene Kassenbeleg-Produkte:", savedProducts.length);
-    setReceiptProducts(savedProducts);
+    console.log("Loaded receipt products:", savedProducts.length);
+    // Sort by timestamp (newest first)
+    const sortedProducts = savedProducts.sort((a, b) => b.timestamp - a.timestamp);
+    setReceiptProducts(sortedProducts);
   };
 
   const updateProductLists = async () => {
-    console.log("Produktlisten nach Quittungsscan oder Bearbeitung aktualisieren");
+    console.log("Updating product lists after receipt scan or edit");
     await loadNotes();
     await loadReceiptProducts();
   };
 
   const handleNoteDelete = (noteId: string) => {
-    console.log("useProductData - Notiz gelöscht, ID:", noteId);
+    console.log("useProductData - Note deleted, ID:", noteId);
     
     setNotes(currentNotes => {
       const filteredNotes = currentNotes.filter(note => {
         const keep = note.id !== noteId;
-        console.log(`Notiz ${note.id} behalten? ${keep} (Vergleich mit ${noteId})`);
+        console.log(`Keep note ${note.id}? ${keep} (compared with ${noteId})`);
         return keep;
       });
       
-      console.log("Notizen nach Filterung:", filteredNotes.map(n => n.id));
+      console.log("Notes after filtering:", filteredNotes.map(n => n.id));
       return filteredNotes;
     });
   };
 
   const handleReceiptProductDelete = (id: string) => {
-    console.log("Kassenbeleg-Produkt löschen:", id);
-    console.log("Aktuelle Kassenbeleg-Produkte:", receiptProducts);
+    console.log("Delete receipt product:", id);
+    console.log("Current receipt products:", receiptProducts);
     
     setReceiptProducts(prevProducts => {
       const newProducts = prevProducts.filter(product => product.id !== id);
-      console.log(`Gefilterte Produkte: Vorher: ${prevProducts.length}, Nachher: ${newProducts.length}`);
+      console.log(`Filtered products: Before: ${prevProducts.length}, After: ${newProducts.length}`);
       return newProducts;
     });
   };
 
   const handleProductSave = async (data: { text: string, metadata: any }) => {
-    console.log("Produkt speichern:", data);
+    console.log("Save product:", data);
     if (data.metadata.product && data.metadata.product.trim()) {
       const productName = data.metadata.product.trim();
-      console.log("Produktname speichern:", productName);
+      console.log("Save product name:", productName);
       await saveNote(productName);
       await loadNotes();
       toast({
-        title: "Produkt gespeichert",
-        description: `"${productName}" wurde erfolgreich gespeichert.`,
+        title: "Product saved",
+        description: `"${productName}" has been successfully saved.`,
       });
     } else {
-      console.error("Kein Produktname gefunden in:", data);
+      console.error("No product name found in:", data);
       toast({
-        title: "Fehler",
-        description: "Beim Speichern des Produkts ist ein Fehler aufgetreten.",
+        title: "Error",
+        description: "An error occurred while saving the product.",
         variant: "destructive",
       });
     }
