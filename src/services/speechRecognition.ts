@@ -36,6 +36,21 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
         };
 
         this.recognition.onend = () => {
+          // If we're still listening but the browser stopped recognition, restart it
+          if (this.isListening && this.recognition) {
+            try {
+              this.recognition.start();
+            } catch (error) {
+              console.error('Error restarting speech recognition:', error);
+              this.isListening = false;
+              if (this.endCallback) {
+                this.endCallback();
+              }
+            }
+            return;
+          }
+
+          // Normal end scenario when stop() was called
           this.isListening = false;
           if (this.endCallback) {
             this.endCallback();

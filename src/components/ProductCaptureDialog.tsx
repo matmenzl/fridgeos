@@ -6,7 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Mic, StopCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,6 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
 
     speechRecognition.onEnd(() => {
       setIsListening(false);
-      handleTranscriptComplete();
     });
 
     return () => {
@@ -59,7 +58,7 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
         speechRecognition.stop();
       }
     };
-  }, [isListening, transcript, currentField]);
+  }, [isListening]);
 
   const handleTranscriptComplete = () => {
     if (!transcript.trim()) return;
@@ -184,6 +183,7 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
   const stopListening = () => {
     if (isListening) {
       speechRecognition.stop();
+      handleTranscriptComplete();
     }
   };
 
@@ -293,17 +293,30 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
             />
             
             <div className="flex flex-col items-center gap-4 my-4">
-              <Button
-                type="button"
-                onClick={isListening ? stopListening : startListening}
-                size="lg"
-                className={`rounded-full h-16 w-16 ${
-                  isListening ? 'bg-destructive hover:bg-destructive/90 animate-pulse' : 'bg-primary hover:bg-primary/90'
-                }`}
-                aria-label={isListening ? 'Aufnahme stoppen' : 'Aufnahme starten'}
-              >
-                {isListening ? 'Stop' : 'Aufnehmen'}
-              </Button>
+              <div className="flex justify-center gap-4">
+                {!isListening ? (
+                  <Button
+                    type="button"
+                    onClick={startListening}
+                    size="lg"
+                    className="rounded-full h-16 w-16 bg-primary hover:bg-primary/90"
+                    aria-label="Aufnahme starten"
+                  >
+                    <Mic size={24} />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={stopListening}
+                    size="lg"
+                    className="rounded-full h-16 w-16 bg-destructive hover:bg-destructive/90 animate-pulse"
+                    aria-label="Aufnahme stoppen"
+                  >
+                    <StopCircle size={24} />
+                  </Button>
+                )}
+              </div>
+              
               {isListening && (
                 <div className="text-center py-2 px-4 rounded-md bg-muted w-full">
                   <p className="font-medium">{getFieldLabel()}</p>
