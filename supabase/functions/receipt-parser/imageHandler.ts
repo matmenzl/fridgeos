@@ -19,21 +19,25 @@ export function processImageFromRequest(req: Request): {
       let json;
       
       try {
-        // First try to get the parsed body directly (Supabase may have already parsed it)
-        const requestBodyText = req.text ? await req.text() : "";
-        console.log("Request body text length:", requestBodyText.length);
-        
-        if (requestBodyText && requestBodyText.length > 0) {
-          try {
-            json = JSON.parse(requestBodyText);
-          } catch (e) {
-            console.error("Failed to parse request body text:", e);
-            // Try to get the body from the request object directly
-            json = await req.json();
-          }
+        // If we have the bodyText property from req (added in index.ts)
+        if (req.bodyText) {
+          console.log("Using pre-parsed bodyText");
+          json = JSON.parse(req.bodyText);
         } else {
-          // If no text body, try to get the JSON directly
-          json = await req.json();
+          // Try to parse the request body directly
+          const requestBodyText = req.text ? await req.text() : "";
+          console.log("Request body text length:", requestBodyText.length);
+          
+          if (requestBodyText && requestBodyText.length > 0) {
+            try {
+              json = JSON.parse(requestBodyText);
+            } catch (e) {
+              console.error("Failed to parse request body text:", e);
+              throw new Error(`Invalid JSON in request body: ${e.message}`);
+            }
+          } else {
+            throw new Error("Empty request body");
+          }
         }
       } catch (e) {
         console.error("Error accessing request body:", e);

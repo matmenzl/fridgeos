@@ -25,9 +25,14 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   if (products.length === 0) return [];
   
   try {
+    console.log('Rufe Edge-Funktion "menu-suggestions" mit diesen Produkten auf:', products);
+    
     // Rufe die Edge-Funktion auf
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
-      body: { products, action: 'getMenuSuggestions' },
+      body: { 
+        products, 
+        action: 'getMenuSuggestions' 
+      },
       headers: {
         'Content-Type': 'application/json'
       }
@@ -39,9 +44,11 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
     }
     
     if (data?.suggestions && Array.isArray(data.suggestions)) {
+      console.log('Erhaltene Vorschläge:', data.suggestions);
       return data.suggestions;
     }
     
+    console.log('Keine gültigen Vorschläge erhalten, verwende Fallback');
     // Fallback auf die originale Implementierung, wenn die API keinen Erfolg hatte
     return fallbackMenuSuggestions(products);
   } catch (error) {
@@ -55,9 +62,14 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
 // Neue Funktion zum Abrufen eines Rezepts für einen Menüvorschlag
 export const getRecipeForSuggestion = async (suggestion: string): Promise<string> => {
   try {
+    console.log('Rufe Edge-Funktion "menu-suggestions" für Rezept auf:', suggestion);
+    
     // Rufe die Edge-Funktion auf
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
-      body: { products: suggestion, action: 'getRecipe' },
+      body: { 
+        products: suggestion, 
+        action: 'getRecipe' 
+      },
       headers: {
         'Content-Type': 'application/json' 
       }
@@ -69,6 +81,7 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     }
     
     if (data?.recipe && typeof data.recipe === 'string') {
+      console.log('Rezept erhalten mit Länge:', data.recipe.length);
       return data.recipe;
     }
     

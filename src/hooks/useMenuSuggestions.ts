@@ -29,6 +29,8 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
       // Combine both product lists
       const allProducts = [...notesProducts, ...receiptProductNames];
       
+      console.log('Generiere Menüvorschläge für:', allProducts);
+      
       // Generate suggestions based on combined products using API
       const newSuggestions = await generateMenuSuggestions(allProducts);
       setMenuSuggestions(newSuggestions);
@@ -62,6 +64,7 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     setRecipeDialogOpen(true);
     
     try {
+      console.log('Hole Rezept für:', suggestion);
       const recipeText = await getRecipeForSuggestion(suggestion);
       setRecipe(recipeText);
     } catch (error) {
@@ -81,13 +84,21 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   // Check if the Edge function is available
   const checkSupabaseFunction = async () => {
     try {
+      console.log('Überprüfe, ob die Edge-Funktion verfügbar ist');
       const { data, error } = await supabase.functions.invoke('menu-suggestions', {
         body: { action: 'ping' },
         headers: {
           'Content-Type': 'application/json'
         }
       });
-      return !error;
+      
+      if (error) {
+        console.error('Edge-Funktion nicht verfügbar:', error);
+        return false;
+      }
+      
+      console.log('Edge-Funktion ist verfügbar:', data);
+      return true;
     } catch (error) {
       console.error('Supabase Edge-Funktion nicht verfügbar:', error);
       return false;
@@ -97,7 +108,17 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   useEffect(() => {
     const generateSuggestions = async () => {
       if (notes.length > 0 || receiptProducts.length > 0) {
-        await regenerateSuggestions();
+        // Check if the Edge function is available
+        const isFunctionAvailable = await checkSupabaseFunction();
+        
+        if (isFunctionAvailable) {
+          console.log('Edge-Funktion ist verfügbar, generiere Menüvorschläge');
+          await regenerateSuggestions();
+        } else {
+          console.log('Edge-Funktion ist nicht verfügbar, verwende Fallback');
+          // We'll still try to generate suggestions, the productUtils will handle the fallback
+          await regenerateSuggestions();
+        }
       }
     };
     

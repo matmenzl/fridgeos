@@ -51,9 +51,9 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
         throw new Error(`Fehler bei der Verarbeitung: ${error.message}`);
       }
 
-      if (!data.success) {
-        console.error('API Fehler:', data.error);
-        throw new Error(data.error || 'Unbekannter Fehler bei der Verarbeitung');
+      if (!data || !data.success) {
+        console.error('API Fehler:', data?.error || 'Unbekannter Fehler');
+        throw new Error(data?.error || 'Unbekannter Fehler bei der Verarbeitung');
       }
 
       setProgress(80);

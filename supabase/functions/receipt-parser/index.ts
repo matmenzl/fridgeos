@@ -9,14 +9,17 @@ const MINDEE_API_KEY = Deno.env.get("MINDEE_API_KEY");
 const MINDEE_API_URL = "https://api.mindee.net/v1/products/mindee/expense_receipts/v5/predict";
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  console.log("Receipt parser function called");
+  
+  // IMPORTANT: Handle CORS preflight requests properly
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200, // Make sure to return a 200 status
+      headers: corsHeaders 
+    });
   }
 
   try {
-    console.log("Receipt parser function called");
-    
     // Log request headers for debugging
     const headers = {};
     req.headers.forEach((value, key) => {
