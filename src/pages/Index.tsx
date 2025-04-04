@@ -74,7 +74,7 @@ const Index = () => {
         </Button>
       </div>
 
-      <h2 className="text-xl font-semibold mb-4">Gespeicherte Notizen</h2>
+      <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
       
       <div className="grid gap-4 mb-8">
         {notes.length > 0 ? (
