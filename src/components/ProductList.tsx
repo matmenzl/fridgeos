@@ -108,8 +108,6 @@ const ProductList: React.FC<ProductListProps> = ({
             </div>
           </div>
           
-          <div className="text-gray-500 text-lg">500 g</div>
-          
           <div className="flex justify-between items-center">
             <div className="flex gap-2">
               <Badge variant="outline" className="bg-gray-100 text-gray-600 hover:bg-gray-100 border-gray-200 rounded-full px-4 py-1">
