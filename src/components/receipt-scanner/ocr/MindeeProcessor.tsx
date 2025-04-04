@@ -55,6 +55,11 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
 
       setProgress(80);
 
+      // Log debug information if available
+      if (data.debug) {
+        console.log('Mindee Debug-Informationen:', data.debug);
+      }
+
       // Check if products were recognized
       if (data.products && data.products.length > 0) {
         setProgress(100);
@@ -70,10 +75,18 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
 
       // If no products or API error, switch to Tesseract
       console.log('Keine Produkte mit Mindee erkannt oder API-Fehler:', data.mindeeError);
+      toast({
+        title: "Cloud-Verarbeitung fehlgeschlagen",
+        description: "Wechsle zu lokaler Verarbeitung...",
+      });
       enableFallback();
       
     } catch (error) {
       console.error('Fehler bei der Edge Function:', error);
+      toast({
+        title: "Fehler bei Cloud-Verarbeitung",
+        description: "Wechsle zu lokaler Verarbeitung...",
+      });
       enableFallback();
     }
   };
