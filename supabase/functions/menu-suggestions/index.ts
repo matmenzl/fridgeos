@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 import OpenAI from "https://deno.land/x/openai@v4.16.1/mod.ts";
@@ -180,7 +181,10 @@ serve(async (req) => {
       }
 
       try {
+        console.log("Generating recipe for:", products);
         const recipe = await generateRecipeWithOpenAI(products);
+        console.log("Recipe generated successfully with length:", recipe.length);
+        
         return new Response(
           JSON.stringify({ recipe }),
           { 
@@ -190,6 +194,7 @@ serve(async (req) => {
         );
       } catch (error) {
         console.error("Error generating recipe:", error);
+        // Always return a 200 response with an error message in the body
         return new Response(
           JSON.stringify({ 
             error: error.message,
@@ -197,7 +202,7 @@ serve(async (req) => {
           }),
           { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200 // Still return 200 with error message
+            status: 200 // Return 200 even when there's an error
           }
         );
       }
@@ -220,7 +225,7 @@ serve(async (req) => {
       JSON.stringify({ 
         error: `Unerwarteter Fehler: ${error.message}`,
         suggestions: generateFallbackSuggestions([]),
-        recipe: null
+        recipe: "Rezept konnte nicht generiert werden. Ein unerwarteter Fehler ist aufgetreten."
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -232,8 +237,13 @@ serve(async (req) => {
 
 // Generate menu suggestions with OpenAI
 async function generateMenuSuggestionsWithOpenAI(products: string[]): Promise<string[]> {
+  if (!OPENAI_API_KEY) {
+    console.error("OpenAI API key is not available");
+    return generateFallbackSuggestions(products);
+  }
+
   const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY || "",
+    apiKey: OPENAI_API_KEY,
   });
 
   const uniqueProducts = [...new Set(products)].filter(product => product && product.trim().length > 0);
@@ -244,47 +254,67 @@ Erstelle 6 kreative Menüvorschläge, die ich mit diesen Zutaten (oder einigen d
 Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Nummerierung oder weitere Erklärungen.
 `;
 
-  const chatCompletion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: "Du bist ein hilfreicher Assistent, der kreative Kochvorschläge macht." },
-      { role: "user", content: prompt }
-    ],
-    temperature: 0.7,
-    max_tokens: 500,
-  });
+  try {
+    const chatCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Du bist ein hilfreicher Assistent, der kreative Kochvorschläge macht." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
 
-  const response = chatCompletion.choices[0].message.content || "";
-  const suggestions = response
-    .split('\n')
-    .filter(line => line.trim().length > 0)
-    .slice(0, 6);
-  
-  return suggestions;
+    const response = chatCompletion.choices[0].message.content || "";
+    const suggestions = response
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .slice(0, 6);
+    
+    return suggestions.length > 0 ? suggestions : generateFallbackSuggestions(products);
+  } catch (error) {
+    console.error("Error calling OpenAI for menu suggestions:", error);
+    return generateFallbackSuggestions(products);
+  }
 }
 
 // Generate recipe with OpenAI
 async function generateRecipeWithOpenAI(menuSuggestion: string): Promise<string> {
-  const openai = new OpenAI({
-    apiKey: OPENAI_API_KEY || "",
-  });
+  if (!OPENAI_API_KEY) {
+    throw new Error("OpenAI API key is not available");
+  }
 
-  const prompt = `
+  try {
+    const openai = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+    });
+
+    const prompt = `
 Erstelle ein detailliertes Rezept für "${menuSuggestion}". 
 Bitte gib Zutaten und Zubereitungsschritte an.
 `;
 
-  const chatCompletion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: "Du bist ein erfahrener Koch, der hilfreiche und detaillierte Rezepte schreibt." },
-      { role: "user", content: prompt }
-    ],
-    temperature: 0.7,
-    max_tokens: 1000,
-  });
+    const chatCompletion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "Du bist ein erfahrener Koch, der hilfreiche und detaillierte Rezepte schreibt." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
 
-  return chatCompletion.choices[0].message.content || "Rezept konnte nicht generiert werden.";
+    const recipe = chatCompletion.choices[0].message.content;
+    
+    if (!recipe || recipe.trim().length === 0) {
+      throw new Error("Leeres Rezept von OpenAI erhalten");
+    }
+    
+    return recipe;
+  } catch (error) {
+    console.error("Error calling OpenAI for recipe:", error);
+    throw new Error("Rezept konnte nicht generiert werden: " + (error instanceof Error ? error.message : "Unbekannter Fehler"));
+  }
 }
 
 // Generate fallback menu suggestions without API

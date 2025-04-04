@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
@@ -76,7 +77,9 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       }
     });
     
-    // Verbesserte Fehlerbehandlung
+    // Verbesserte Fehlerbehandlung mit detaillierten Protokollen
+    console.log('Rezept API Antwort:', JSON.stringify(response, null, 2));
+    
     if (response.error) {
       console.error('Fehler bei der Generierung des Rezepts:', response.error);
       
@@ -86,7 +89,7 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
         return response.data.recipe;
       }
       
-      throw response.error;
+      return 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.';
     }
     
     // Wenn die Antwort ein data Objekt mit einem Rezept enthält
@@ -95,7 +98,7 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       return response.data.recipe;
     }
     
-    throw new Error('Rezept konnte nicht generiert werden');
+    return 'Rezept konnte nicht generiert werden. Bitte versuche es später erneut.';
   } catch (error) {
     console.error('Fehler bei der Generierung des Rezepts:', error);
     return 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.';
