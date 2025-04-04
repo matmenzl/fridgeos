@@ -82,7 +82,8 @@ serve(async (req) => {
           // Verwende ausschließlich die Produktlinien
           if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
             data.prediction.line_items.forEach(item => {
-              if (item.description && item.description.confidence > 0.6) {
+              // Confidence threshold lowered from 0.6 to 0.3
+              if (item.description && item.description.confidence > 0.3) {
                 items.push(item.description.value);
               }
             });
