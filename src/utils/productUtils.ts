@@ -1,3 +1,4 @@
+import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
   // Simple extraction based on note content
@@ -6,6 +7,7 @@ export const extractProductNames = (notes: { text: string }[]): string[] => {
 };
 
 // API-Schlüssel-Verwaltungsfunktionen
+// Diese bleiben für die Abwärtskompatibilität erhalten
 export const getOpenAiApiKey = (): string | null => {
   return localStorage.getItem('openai_api_key');
 };
@@ -22,68 +24,26 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   if (products.length === 0) return [];
   
   try {
-    // Prepare the list of products as a comma-separated string
-    const productsList = products.join(', ');
-    
-    // Create the prompt for ChatGPT
-    const prompt = `Du bist ein Koch-Experte und sollst Menüvorschläge basierend auf den folgenden Zutaten erstellen:
-    
-    ${productsList}
-    
-    Bitte erstelle 6 kreative Menüvorschläge (oder weniger, wenn nicht genug Zutaten vorhanden sind). 
-    Jeder Vorschlag sollte kurz sein (maximal 3-4 Wörter) und auf Deutsch.
-    Gib nur die Menüvorschläge zurück, einer pro Zeile, ohne Nummerierung oder andere Texte.`;
-    
-    // Call the OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getOpenAiApiKey() || ''}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'Du bist ein hilfreicher Assistent, der kreative Menüvorschläge basierend auf vorhandenen Zutaten erstellt.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 250
-      })
+    // Rufe die Edge-Funktion auf
+    const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+      body: { products, action: 'getMenuSuggestions' }
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
+    if (error) {
+      console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
+      throw error;
     }
     
-    const data = await response.json();
+    if (data?.suggestions && Array.isArray(data.suggestions)) {
+      return data.suggestions;
+    }
     
-    // Extract the suggestions from the API response
-    const aiResponse = data.choices[0].message.content.trim();
-    
-    // Split the response by new lines to get individual suggestions
-    const suggestions = aiResponse.split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('-')) // Remove empty lines and bullet points
-      .map(line => {
-        // Remove numbers at the beginning if present (e.g. "1. Spaghetti Carbonara" -> "Spaghetti Carbonara")
-        return line.replace(/^\d+\.\s*/, '');
-      });
-    
-    // Return up to 6 suggestions
-    return suggestions.slice(0, 6);
+    // Fallback auf die originale Implementierung, wenn die API keinen Erfolg hatte
+    return fallbackMenuSuggestions(products);
   } catch (error) {
     console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
     
-    // Fall back to the original implementation if the API call fails
+    // Fallback auf die originale Implementierung bei einem Fehler
     return fallbackMenuSuggestions(products);
   }
 };
@@ -91,48 +51,21 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
 // Neue Funktion zum Abrufen eines Rezepts für einen Menüvorschlag
 export const getRecipeForSuggestion = async (suggestion: string): Promise<string> => {
   try {
-    // Create the prompt for ChatGPT
-    const prompt = `Bitte erstelle ein einfaches Rezept für "${suggestion}". 
-    Das Rezept sollte folgende Abschnitte enthalten:
-    - Zutaten (als Liste)
-    - Zubereitungsschritte (nummeriert)
-    
-    Halte das Rezept kurz und prägnant, maximal 250 Wörter.`;
-    
-    // Call the OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getOpenAiApiKey() || ''}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          {
-            role: 'system',
-            content: 'Du bist ein Koch-Experte, der einfache und leckere Rezepte erstellt.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500
-      })
+    // Rufe die Edge-Funktion auf
+    const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+      body: { products: suggestion, action: 'getRecipe' }
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
+    if (error) {
+      console.error('Fehler bei der Generierung des Rezepts:', error);
+      throw error;
     }
     
-    const data = await response.json();
+    if (data?.recipe && typeof data.recipe === 'string') {
+      return data.recipe;
+    }
     
-    // Extract the recipe from the API response
-    return data.choices[0].message.content.trim();
+    throw new Error('Rezept konnte nicht generiert werden');
   } catch (error) {
     console.error('Fehler bei der Generierung des Rezepts:', error);
     return 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.';

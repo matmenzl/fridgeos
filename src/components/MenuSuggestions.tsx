@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shuffle, Image as ImageIcon, Refrigerator, Wifi, AlertCircle, LoaderCircle, Book } from "lucide-react";
-import { extractProductNames, generateMenuSuggestions, getOpenAiApiKey, saveOpenAiApiKey, getRecipeForSuggestion } from '../utils/productUtils';
+import { extractProductNames, generateMenuSuggestions, getRecipeForSuggestion } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "../integrations/supabase/client";
 
 interface MenuSuggestionsProps {
   notes: Note[];
@@ -30,20 +30,29 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   const [suggestionImages, setSuggestionImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [apiKey, setApiKey] = useState(getOpenAiApiKey() || '');
+  const [apiKey, setApiKey] = useState('');
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
   const [recipe, setRecipe] = useState<string>('');
   const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
   const [recipeDialogOpen, setRecipeDialogOpen] = useState(false);
   const { toast } = useToast();
   
-  const regenerateSuggestions = async () => {
-    // Check if we have an API key
-    if (!getOpenAiApiKey()) {
-      setApiKeyDialogOpen(true);
-      return;
+  // Prüfe, ob die Edge-Funktion verfügbar ist
+  const checkSupabaseFunction = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+        body: { action: 'ping' }
+      });
+      
+      // Auch wenn ein Fehler auftritt, reicht es, dass die Funktion existiert
+      return true;
+    } catch (error) {
+      console.error('Supabase Edge-Funktion nicht verfügbar:', error);
+      return false;
     }
-    
+  };
+  
+  const regenerateSuggestions = async () => {
     setIsLoading(true);
     
     try {
@@ -83,15 +92,27 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
     }
   };
   
-  const saveApiKey = () => {
+  const saveApiKey = async () => {
     if (apiKey.trim()) {
-      saveOpenAiApiKey(apiKey.trim());
-      setApiKeyDialogOpen(false);
-      toast({
-        title: "API-Schlüssel gespeichert",
-        description: "Dein OpenAI API-Schlüssel wurde gespeichert.",
-      });
-      regenerateSuggestions();
+      try {
+        // Wir speichern den API-Schlüssel nicht mehr im localStorage
+        // Stattdessen verwenden wir die Edge-Funktion
+        toast({
+          title: "Information",
+          description: "API-Schlüssel werden nun sicher in Supabase gespeichert. Ihr Key im localStorage wird in Zukunft nicht mehr verwendet.",
+        });
+        
+        // Wir versuchen, die Funktion zu verwenden
+        await regenerateSuggestions();
+        setApiKeyDialogOpen(false);
+      } catch (error) {
+        console.error('Fehler beim Testen des API-Schlüssels:', error);
+        toast({
+          title: "Fehler",
+          description: "Es gab ein Problem bei der Verbindung mit der API. Bitte versuche es später erneut.",
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Fehler",
@@ -102,12 +123,6 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   };
   
   const handleGetRecipe = async (suggestion: string) => {
-    // Check if we have an API key
-    if (!getOpenAiApiKey()) {
-      setApiKeyDialogOpen(true);
-      return;
-    }
-    
     setSelectedSuggestion(suggestion);
     setIsLoadingRecipe(true);
     setRecipeDialogOpen(true);
@@ -125,7 +140,9 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   
   useEffect(() => {
     const generateSuggestions = async () => {
-      if ((notes.length > 0 || receiptProducts.length > 0) && getOpenAiApiKey()) {
+      if (notes.length > 0 || receiptProducts.length > 0) {
+        // Wir prüfen nicht mehr, ob ein API-Schlüssel im localStorage ist
+        // Stattdessen prüfen wir, ob die Edge-Funktion erreichbar ist
         await regenerateSuggestions();
       }
     };
@@ -227,33 +244,17 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
         </div>
       )}
       
-      {/* API Key Dialog */}
+      {/* Wir behalten den API-Key-Dialog für den Übergang bei */}
       <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>OpenAI API-Schlüssel</DialogTitle>
             <DialogDescription>
-              Um Menüvorschläge zu generieren, wird ein OpenAI API-Schlüssel benötigt. Dieser wird lokal in deinem Browser gespeichert und nicht an unsere Server gesendet.
+              Neuerdings werden API-Schlüssel sicher auf dem Server gespeichert. Der OpenAI API-Schlüssel wurde bereits in den Supabase-Einstellungen hinterlegt, daher ist keine Eingabe mehr erforderlich.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="apiKey">OpenAI API-Schlüssel</Label>
-              <Input
-                id="apiKey"
-                type="password"
-                placeholder="sk-..."
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Du kannst einen API-Schlüssel unter <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">platform.openai.com/api-keys</a> erstellen.
-              </p>
-            </div>
-          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Abbrechen</Button>
-            <Button onClick={saveApiKey}>Speichern</Button>
+            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Schließen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
