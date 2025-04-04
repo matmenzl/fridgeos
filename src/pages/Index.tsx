@@ -6,7 +6,7 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import { getAllNotes, saveNote, Note } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, Scan, Mic } from "lucide-react";
+import { Plus, Scan } from "lucide-react";
 import ProductCaptureDialog from '../components/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 
@@ -54,19 +54,15 @@ const Index = () => {
         <p className="text-muted-foreground">Food-Checkin- und Checkout für möglichst wenig Foodwaste in deinem Zuhause.</p>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         <Button 
           onClick={() => setProductDialogOpen(true)}
           variant="outline"
           className="flex flex-col items-center gap-2 h-auto py-4"
         >
           <Plus size={24} />
-          <span>Produkt erfassen</span>
+          <span>Produkt per Voice erfassen</span>
         </Button>
-        
-        <div className="flex justify-center">
-          <SpeechInput onTranscriptComplete={handleTranscriptComplete} />
-        </div>
         
         <Button 
           onClick={() => setScannerDialogOpen(true)}
@@ -98,7 +94,6 @@ const Index = () => {
         )}
       </div>
       
-      {/* Add the menu suggestions component */}
       <MenuSuggestions notes={notes} />
 
       <ProductCaptureDialog 
