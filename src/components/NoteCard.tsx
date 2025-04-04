@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trash, Edit, Minus, Plus } from 'lucide-react';
+import { Trash, Edit } from 'lucide-react';
 import { Note, deleteNote } from '../services/noteStorage';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -51,18 +51,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <h3 className="text-xl font-bold">{displayText}</h3>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-              <Minus className="h-4 w-4" />
-            </Button>
-            <span className="text-lg font-medium">500</span>
-            <Button variant="outline" size="icon" className="rounded-full h-10 w-10">
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
-        
-        <div className="text-gray-500 text-lg">500 g</div>
         
         <div className="flex justify-between items-center">
           <div className="flex gap-2">
