@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -75,7 +76,12 @@ const Index = () => {
   return (
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center">
+          <img 
+            src="/lovable-uploads/99cecf42-fa29-40be-843d-31a88b6a896d.png" 
+            alt="Fridgie Logo" 
+            className="h-10 mr-2" 
+          />
           <span>Fridgie</span>
         </h1>
         <p className="text-muted-foreground">Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.</p>
