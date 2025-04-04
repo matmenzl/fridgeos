@@ -1,10 +1,86 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart, Utensils, Refrigerator, Sparkles } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import FoodItemsList from '@/components/FoodItemsList';
+import CategoryFilter from '@/components/CategoryFilter';
+import FoodInventoryActions from '@/components/FoodInventoryActions';
+
+// Mock data for demonstration
+const mockFoodItems = [
+  {
+    id: '1',
+    name: 'Chicken Breast',
+    quantity: 500,
+    unit: 'g',
+    category: 'Meat',
+    expiryDate: new Date()
+  },
+  {
+    id: '2',
+    name: 'Milk',
+    quantity: 1,
+    unit: 'l',
+    category: 'Dairy',
+    expiryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+  },
+  {
+    id: '3',
+    name: 'Yogurt',
+    quantity: 2,
+    unit: 'pcs',
+    category: 'Dairy',
+    expiryDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)
+  },
+  {
+    id: '4',
+    name: 'Apples',
+    quantity: 4,
+    unit: 'pcs',
+    category: 'Fruits',
+    expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  }
+];
+
+const categories = ['Fruits', 'Vegetables', 'Dairy', 'Meat', 'Grains', 'Spices', 'Other'];
 
 const Index = () => {
+  const [foodItems, setFoodItems] = useState(mockFoodItems);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Filter items based on category and search query
+  const filteredItems = foodItems.filter(item => {
+    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  // Handle updating quantity
+  const handleUpdateQuantity = (id: string, newQuantity: number) => {
+    if (newQuantity <= 0) return;
+    
+    setFoodItems(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  // Handle delete
+  const handleDelete = (id: string) => {
+    setFoodItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Handle actions (these would be implemented with real functionality)
+  const handleSearch = (query: string) => setSearchQuery(query);
+  const handleScanItem = () => console.log('Scan item');
+  const handleScanReceipt = () => console.log('Scan receipt');
+  const handleVoice = () => console.log('Voice input');
+  const handleAddItem = () => console.log('Add item');
+  const handleEdit = (id: string) => console.log('Edit item', id);
+
   return (
     <div className="min-h-screen">
       {/* Hero section with gradient background */}
@@ -15,6 +91,32 @@ const Index = () => {
           and AI-powered recipe suggestions
         </p>
       </header>
+
+      {/* Food Inventory Section */}
+      <section className="py-8 px-4">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <FoodInventoryActions 
+            onSearch={handleSearch}
+            onScanItem={handleScanItem}
+            onScanReceipt={handleScanReceipt}
+            onVoice={handleVoice}
+            onAddItem={handleAddItem}
+          />
+          
+          <CategoryFilter 
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
+          
+          <FoodItemsList 
+            items={filteredItems}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onUpdateQuantity={handleUpdateQuantity}
+          />
+        </div>
+      </section>
 
       {/* Get Started Section */}
       <section className="py-12 px-4">
