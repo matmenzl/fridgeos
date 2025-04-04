@@ -2,9 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shuffle, Image as ImageIcon, Refrigerator, Wifi } from "lucide-react";
+import { Shuffle, Image as ImageIcon, Refrigerator, Wifi, AlertCircle, LoaderCircle } from "lucide-react";
 import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface MenuSuggestionsProps {
   notes: Note[];
@@ -24,31 +28,83 @@ const foodImages = [
 const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProducts = [] }) => {
   const [menuSuggestions, setMenuSuggestions] = useState<string[]>([]);
   const [suggestionImages, setSuggestionImages] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
+  const [apiKey, setApiKey] = useState(localStorage.getItem('openai_api_key') || '');
+  const { toast } = useToast();
   
-  const regenerateSuggestions = () => {
-    // Extract products from notes
-    const notesProducts = extractProductNames(notes);
+  const regenerateSuggestions = async () => {
+    // Check if we have an API key
+    if (!localStorage.getItem('openai_api_key')) {
+      setApiKeyDialogOpen(true);
+      return;
+    }
     
-    // Extract products from receipt products
-    const receiptProductNames = receiptProducts.map(product => product.productName);
+    setIsLoading(true);
     
-    // Combine both product lists
-    const allProducts = [...notesProducts, ...receiptProductNames];
-    
-    // Generate suggestions based on combined products
-    const newSuggestions = generateMenuSuggestions(allProducts);
-    setMenuSuggestions(newSuggestions);
-    
-    // Assign random images from our collection to each suggestion
-    const newImages = newSuggestions.map(() => {
-      const randomIndex = Math.floor(Math.random() * foodImages.length);
-      return foodImages[randomIndex];
-    });
-    setSuggestionImages(newImages);
+    try {
+      // Extract products from notes
+      const notesProducts = extractProductNames(notes);
+      
+      // Extract products from receipt products
+      const receiptProductNames = receiptProducts.map(product => product.productName);
+      
+      // Combine both product lists
+      const allProducts = [...notesProducts, ...receiptProductNames];
+      
+      // Generate suggestions based on combined products using API
+      const newSuggestions = await generateMenuSuggestions(allProducts);
+      setMenuSuggestions(newSuggestions);
+      
+      // Assign random images from our collection to each suggestion
+      const newImages = newSuggestions.map(() => {
+        const randomIndex = Math.floor(Math.random() * foodImages.length);
+        return foodImages[randomIndex];
+      });
+      setSuggestionImages(newImages);
+      
+      toast({
+        title: "Menüvorschläge wurden generiert",
+        description: "Neue Vorschläge wurden erfolgreich erstellt.",
+      });
+    } catch (error) {
+      console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
+      toast({
+        title: "Fehler",
+        description: "Menüvorschläge konnten nicht generiert werden. Bitte versuche es später erneut.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('openai_api_key', apiKey.trim());
+      setApiKeyDialogOpen(false);
+      toast({
+        title: "API-Schlüssel gespeichert",
+        description: "Dein OpenAI API-Schlüssel wurde gespeichert.",
+      });
+      regenerateSuggestions();
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte gib einen gültigen API-Schlüssel ein.",
+        variant: "destructive",
+      });
+    }
   };
   
   useEffect(() => {
-    regenerateSuggestions();
+    const generateSuggestions = async () => {
+      if ((notes.length > 0 || receiptProducts.length > 0) && localStorage.getItem('openai_api_key')) {
+        await regenerateSuggestions();
+      }
+    };
+    
+    generateSuggestions();
   }, [notes, receiptProducts]);
   
   // Only show menu suggestions if we have products (either from notes or receipt products)
@@ -72,10 +128,20 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
           variant="outline" 
           size="sm"
           onClick={regenerateSuggestions}
+          disabled={isLoading}
           className="flex items-center gap-1"
         >
-          <Shuffle size={16} />
-          <span>Neu generieren</span>
+          {isLoading ? (
+            <>
+              <LoaderCircle size={16} className="animate-spin" />
+              <span>Generiere...</span>
+            </>
+          ) : (
+            <>
+              <Shuffle size={16} />
+              <span>Neu generieren</span>
+            </>
+          )}
         </Button>
       </div>
       
@@ -108,11 +174,51 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
         </div>
       ) : (
         <div className="text-center p-8 bg-muted rounded-lg">
-          <p className="text-muted-foreground">
-            Keine Menüvorschläge verfügbar. Fügen Sie Produkte hinzu, um Vorschläge zu erhalten.
-          </p>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <LoaderCircle size={32} className="animate-spin text-primary" />
+              <p className="text-muted-foreground">Generiere Menüvorschläge...</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <AlertCircle size={24} className="text-muted-foreground" />
+              <p className="text-muted-foreground">
+                Keine Menüvorschläge verfügbar. Klicke auf "Neu generieren", um Vorschläge zu erhalten.
+              </p>
+            </div>
+          )}
         </div>
       )}
+      
+      <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>OpenAI API-Schlüssel</DialogTitle>
+            <DialogDescription>
+              Um Menüvorschläge zu generieren, wird ein OpenAI API-Schlüssel benötigt. Dieser wird lokal in deinem Browser gespeichert und nicht an unsere Server gesendet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">OpenAI API-Schlüssel</Label>
+              <Input
+                id="apiKey"
+                type="password"
+                placeholder="sk-..."
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Du kannst einen API-Schlüssel unter <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">platform.openai.com/api-keys</a> erstellen.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Abbrechen</Button>
+            <Button onClick={saveApiKey}>Speichern</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
