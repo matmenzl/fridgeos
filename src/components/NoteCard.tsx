@@ -1,10 +1,12 @@
 
 import React from 'react';
 import { Trash, Edit, Minus, Plus } from 'lucide-react';
-import { Note } from '../services/databaseUtils';
+import { Note, deleteNote } from '../services/noteStorage';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 interface NoteCardProps {
   note: Note;
@@ -14,7 +16,9 @@ interface NoteCardProps {
 const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
   const handleDelete = () => {
     console.log("NoteCard - Deleting product with ID:", note.id);
-    // Wir rufen nur den Callback auf, die tatsächliche Löschung erfolgt in Index.tsx
+    // Delete from storage
+    deleteNote(note.id);
+    // Call the callback with the specific note ID
     onDelete(note.id);
   };
 

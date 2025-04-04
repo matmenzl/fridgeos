@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Trash } from "lucide-react";
-import { saveReceiptProduct, getAllReceiptProducts } from '../../services/receiptProductService';
+import { saveReceiptProduct, getAllReceiptProducts } from '../../services/noteStorage';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
@@ -26,7 +26,6 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [results, setResults] = useState<string[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
 
   const handleCapture = (capturedImageUrl: string) => {
     setImageUrl(capturedImageUrl);
@@ -45,11 +44,6 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const handleProcessingError = (error: Error) => {
     console.error('Processing error:', error);
     setScanning(false);
-    toast({
-      title: "Fehler bei der Verarbeitung",
-      description: "Die Quittung konnte nicht erkannt werden.",
-      variant: "destructive",
-    });
   };
 
   const toggleItemSelection = (item: string) => {
@@ -67,37 +61,16 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   };
 
   const saveSelectedItems = async () => {
-    if (selectedItems.length === 0) {
-      toast({
-        title: "Keine Produkte ausgewählt",
-        description: "Bitte wähle mindestens ein Produkt aus.",
-        variant: "destructive",
+    if (selectedItems.length > 0) {
+      // Jedes ausgewählte Produkt einzeln speichern
+      selectedItems.forEach(item => {
+        saveReceiptProduct(item);
       });
-      return;
-    }
-    
-    setIsSaving(true);
-    
-    try {
-      // Jeden ausgewählten Produktnamen an Supabase senden
-      const savePromises = selectedItems.map(item => saveReceiptProduct(item));
-      const results = await Promise.allSettled(savePromises);
       
-      // Prüfen, ob alle Speichervorgänge erfolgreich waren
-      const failedCount = results.filter(result => result.status === 'rejected').length;
-      
-      if (failedCount > 0) {
-        toast({
-          title: "Fehler beim Speichern",
-          description: `${failedCount} Produkte konnten nicht gespeichert werden.`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Produkte gespeichert",
-          description: `${selectedItems.length} Produkte wurden erfolgreich gespeichert.`,
-        });
-      }
+      toast({
+        title: "Produkte gespeichert",
+        description: `${selectedItems.length} Produkte wurden gespeichert.`,
+      });
       
       // Notify parent component that products have been updated
       if (onProductsUpdated) {
@@ -109,15 +82,12 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       setImageUrl(null);
       setResults([]);
       setSelectedItems([]);
-    } catch (error) {
-      console.error('Error saving products:', error);
+    } else {
       toast({
-        title: "Fehler beim Speichern",
-        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        title: "Keine Produkte ausgewählt",
+        description: "Bitte wähle mindestens ein Produkt aus.",
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -134,7 +104,6 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
       setResults([]);
       setSelectedItems([]);
       setScanning(false);
-      setIsSaving(false);
     }
   }, [open]);
 
@@ -184,9 +153,9 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
           <DialogFooter>
             <Button 
               onClick={saveSelectedItems}
-              disabled={selectedItems.length === 0 || isSaving}
+              disabled={selectedItems.length === 0}
             >
-              {isSaving ? 'Speichern...' : `${selectedItems.length} Produkte speichern`}
+              {selectedItems.length} Produkte speichern
             </Button>
           </DialogFooter>
         )}

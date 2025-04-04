@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shuffle, Image as ImageIcon, Refrigerator, Wifi } from "lucide-react";
 import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
-import { Note, ProductNote } from '../services/databaseUtils';
+import { Note, ProductNote } from '../services/noteStorage';
 
 interface MenuSuggestionsProps {
   notes: Note[];
