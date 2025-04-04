@@ -6,7 +6,7 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, Scan, ShoppingBag } from "lucide-react";
+import { Plus, Scan, ShoppingBag, Trash } from "lucide-react";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 

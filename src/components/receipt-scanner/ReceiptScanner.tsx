@@ -84,7 +84,6 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
   };
 
-  // Unterstütze das Löschen eines einzelnen erkannten Produkts aus den Ergebnissen
   const handleRemoveItem = (itemToRemove: string) => {
     setResults(results.filter(item => item !== itemToRemove));
     if (selectedItems.includes(itemToRemove)) {
