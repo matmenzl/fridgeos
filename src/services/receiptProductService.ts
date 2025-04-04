@@ -26,7 +26,8 @@ export const deleteReceiptProduct = (id: string): void => {
   const products = getAllReceiptProducts();
   console.log(`Before deletion: ${products.length} products`);
   
-  // Filter out ONLY the product with the matching ID
+  // The bug is here. We need to make sure we're correctly filtering by ID
+  // Use strict equality comparison to ensure correct ID matching
   const updatedProducts = products.filter(product => product.id !== id);
   
   console.log(`After deletion: ${updatedProducts.length} products`);

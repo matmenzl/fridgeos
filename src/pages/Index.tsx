@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +43,7 @@ const Index = () => {
       loadNotes();
       toast({
         title: "Produkt gespeichert",
-        description: `"${productName}" wurde erfolgreich gespeichert.`,
+        description: `"${productName}" wurde erfolgreich gespeichert.",
       });
     } else {
       console.error("No product name found in:", data);
@@ -58,9 +57,21 @@ const Index = () => {
 
   const handleDeleteReceiptProduct = (id: string) => {
     console.log("Deleting receipt product:", id);
+    console.log("Current receipt products:", receiptProducts);
+    
+    // Store products before deletion
+    const productsBefore = [...receiptProducts];
+    
+    // Delete the product
     deleteReceiptProduct(id);
-    // Update the state directly after deletion
-    setReceiptProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+    
+    // Update the state by correctly filtering only the product with matching ID
+    setReceiptProducts(prevProducts => {
+      const newProducts = prevProducts.filter(product => product.id !== id);
+      console.log(`Filtered products: Before: ${prevProducts.length}, After: ${newProducts.length}`);
+      return newProducts;
+    });
+    
     toast({
       title: "Produkt gelöscht",
       description: "Das Produkt wurde erfolgreich gelöscht.",

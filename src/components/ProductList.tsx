@@ -28,6 +28,13 @@ const ProductList: React.FC<ProductListProps> = ({
     );
   }
 
+  // Handler with additional logging
+  const handleProductDelete = (productId: string) => {
+    console.log(`ProductList - Deleting product with ID: ${productId}`);
+    console.log(`Available products before delete:`, receiptProducts.map(p => p.id));
+    onReceiptProductDelete(productId);
+  };
+
   return (
     <div className="grid gap-4">
       {notes.length > 0 && (
@@ -50,7 +57,7 @@ const ProductList: React.FC<ProductListProps> = ({
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => onReceiptProductDelete(product.id)} 
+              onClick={() => handleProductDelete(product.id)} 
               className="text-destructive h-8 w-8"
             >
               <Trash className="h-4 w-4" />
