@@ -68,11 +68,11 @@ serve(async (req) => {
     // Ergebnis parsen
     const result = await response.json();
     
-    // Produkte aus dem Ergebnis extrahieren
-    const extractProducts = (data) => {
+    // Nur Produkte aus den line_items der Ergebnisse extrahieren
+    const extractLineItems = (data) => {
       const products = [];
       
-      // Verwende die Produktlinien, wenn vorhanden
+      // Verwende ausschließlich die Produktlinien
       if (data.prediction?.line_items && data.prediction.line_items.length > 0) {
         data.prediction.line_items.forEach(item => {
           if (item.description && item.description.confidence > 0.6) {
@@ -81,23 +81,10 @@ serve(async (req) => {
         });
       }
       
-      // Wenn keine Produktlinien gefunden wurden, versuche andere Felder zu verwenden
-      if (products.length === 0) {
-        // Verwende den Händlernamen
-        if (data.prediction?.supplier && data.prediction.supplier.value) {
-          products.push(`Einkauf bei ${data.prediction.supplier.value}`);
-        }
-        
-        // Verwende Kategorien, wenn vorhanden
-        if (data.prediction?.category && data.prediction.category.value) {
-          products.push(data.prediction.category.value);
-        }
-      }
-      
       return products;
     };
 
-    const extractedProducts = extractProducts(result.document);
+    const extractedProducts = extractLineItems(result.document);
     console.log("Extrahierte Produkte:", extractedProducts);
 
     // Antwort an den Client senden
