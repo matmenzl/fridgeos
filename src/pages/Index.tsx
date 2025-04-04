@@ -69,7 +69,8 @@ const Index = () => {
   const handleDeleteReceiptProduct = (id: string) => {
     console.log("Deleting receipt product:", id);
     deleteReceiptProduct(id);
-    loadReceiptProducts(); // Refresh the list after deletion
+    // Update the state directly after deletion
+    setReceiptProducts(prevProducts => prevProducts.filter(product => product.id !== id));
     toast({
       title: "Produkt gelöscht",
       description: "Das Produkt wurde erfolgreich gelöscht.",
@@ -87,7 +88,12 @@ const Index = () => {
     console.log("Note deleted, refreshing list. Note ID:", noteId);
     
     // Update the state directly to remove just the deleted note
-    setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+    setNotes(prevNotes => {
+      console.log("Previous notes:", prevNotes.length);
+      const filtered = prevNotes.filter(note => note.id !== noteId);
+      console.log("Filtered notes:", filtered.length);
+      return filtered;
+    });
     
     toast({
       title: "Produkt gelöscht",
