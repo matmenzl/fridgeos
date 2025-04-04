@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shuffle, Image as ImageIcon } from "lucide-react";
+import { Shuffle, Image as ImageIcon, Refrigerator, Wifi } from "lucide-react";
 import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
 
@@ -61,7 +61,13 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   return (
     <div className="mb-8">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Menüvorschläge</h2>
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <div className="flex text-green-500">
+            <Refrigerator size={24} />
+            <Wifi size={16} className="relative -ml-1 -mt-1" />
+          </div>
+          <span>Menüvorschläge</span>
+        </h2>
         <Button 
           variant="outline" 
           size="sm"
