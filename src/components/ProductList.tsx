@@ -1,7 +1,6 @@
 
 import React from 'react';
-import NoteCard from './NoteCard';
-import { ShoppingBag, Trash } from "lucide-react";
+import { ShoppingBag, Trash, Edit, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note, ProductNote } from '../services/noteStorage';
 
@@ -35,15 +34,33 @@ const ProductList: React.FC<ProductListProps> = ({
     onReceiptProductDelete(productId);
   };
 
+  // Extrakt Produktname aus formatiertem Text
+  const extractProductName = (noteText: string): string => {
+    // Check if the note is a multi-line formatted product note
+    if (noteText.includes('Produkt:')) {
+      return noteText.split('\n')[0].replace('Produkt:', '').trim();
+    }
+    return noteText;
+  };
+
   return (
     <div className="grid gap-4">
       {notes.length > 0 && (
         notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
-          <NoteCard 
-            key={note.id} 
-            note={note} 
-            onDelete={onNoteDelete} 
-          />
+          <div key={note.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
+            <div className="flex items-center gap-2">
+              <Mic className="h-4 w-4 text-primary" />
+              <span>{extractProductName(note.text)}</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => onNoteDelete(note.id)} 
+              className="text-destructive h-8 w-8"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </div>
         ))
       )}
       
