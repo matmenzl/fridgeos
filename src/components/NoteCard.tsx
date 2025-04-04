@@ -18,10 +18,18 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
     onDelete();
   };
 
+  // Check if the note is a multi-line formatted product note
+  const isFormattedProduct = note.text.includes('Produkt:') && note.text.includes('Ablaufdatum:');
+  
+  // Extract just the product name if it's a formatted product note
+  const displayText = isFormattedProduct
+    ? note.text.split('\n')[0].replace('Produkt:', '').trim()
+    : note.text;
+
   return (
     <Card className="w-full">
       <CardContent className="pt-6">
-        <p className="text-left break-words">{note.text}</p>
+        <p className="text-left break-words">{displayText}</p>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
         <span className="text-sm text-muted-foreground">

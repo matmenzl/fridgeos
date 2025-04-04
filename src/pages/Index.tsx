@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -44,12 +43,12 @@ const Index = () => {
   };
 
   const handleProductSave = (data: { text: string, metadata: any }) => {
-    if (data.text.trim()) {
-      saveNote(data.text.trim());
+    if (data.metadata.product.trim()) {
+      saveNote(data.metadata.product.trim());
       loadNotes();
       toast({
         title: "Produkt gespeichert",
-        description: "Dein Produkt wurde erfolgreich gespeichert.",
+        description: `"${data.metadata.product}" wurde erfolgreich gespeichert.`,
       });
     }
   };
@@ -93,7 +92,6 @@ const Index = () => {
       <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
       
       <div className="grid gap-4 mb-8">
-        {/* Anzeige der Voice-erfassten Notizen */}
         {notes.length > 0 && (
           notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
             <NoteCard 
@@ -104,7 +102,6 @@ const Index = () => {
           ))
         )}
         
-        {/* Anzeige der gescannten Produkte */}
         {receiptProducts.length > 0 && (
           receiptProducts.sort((a, b) => b.timestamp - a.timestamp).map((product) => (
             <div key={product.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
