@@ -24,20 +24,20 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   }, [imageUrl]);
 
-  // Verbesserte Funktion zur Erkennung von Produktnamen
+  // Optimize text extraction for German receipts
   const filterProductLines = (text: string): string[] => {
-    // Text in Zeilen aufteilen und bereinigen
+    // Split text into lines and clean them
     const lines = text.split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 2);
     
     console.log('Raw OCR lines:', lines);
     
-    // Optimierte Filterung für deutsche Kassenbons
+    // German receipt-specific filtering
     const productLines = lines.filter(line => {
       const lowerLine = line.toLowerCase();
       
-      // Häufige Metadaten in deutschen Kassenbons ausschließen
+      // Remove common German receipt headers/footers/metadata
       const isMetadata = 
         lowerLine.includes('gesamt') ||
         lowerLine.includes('summe') ||
@@ -64,47 +64,27 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         lowerLine.includes('zahlung') ||
         lowerLine.includes('betrag');
       
-      // Nur-Preis-Zeilen ausfiltern (häufig in deutschen Kassenbons)
+      // Filter out price-only lines (common in German receipts)
       const isPriceLine = /^\s*\d+[.,]\d{2}\s*€?\s*$/.test(line);
       
-      // Nummerierte Zeilen ohne Produktnamen ausfiltern
+      // Filter out numbered lines that have just a number and no product name
       const isNumberOnly = /^\s*\d+\s*$/.test(line);
       
-      // Potenzielle Produktzeilen haben oft einen Preis
+      // Potential product lines often have a price
       const hasPrice = /\d+[.,]\d{2}/.test(line);
       
-      // Produktzeilen haben typischerweise einen Mix aus Buchstaben und Zahlen
-      const hasLettersAndDigits = /[A-Za-zäöüÄÖÜß].*\d|\d.*[A-Za-zäöüÄÖÜß]/.test(line);
+      // Product lines usually have a mix of letters and numbers
+      const hasLettersAndDigits = /[A-Za-z].*\d|\d.*[A-Za-z]/.test(line);
       
-      // Typische Länge von Produktbeschreibungen
+      // Typical length of product descriptions
       const hasReasonableLength = line.length > 3 && line.length < 60;
-      
-      // Kurze Wörter wie Artikelüberschriften ausschließen
-      const isTooShortWord = lowerLine.split(/\s+/).some(word => word.length < 3 && word.length > 0);
-      
-      // Zeilen mit bestimmten Mustern von Kassenbons entfernen
-      const isReceiptPattern = /^\s*[-x*]\s+\d+/.test(line) || // Muster wie "- 1" am Anfang
-                              /^\s*\d+\s*x\s+/.test(line);    // Muster wie "2 x" am Anfang
 
       return !isMetadata && !isPriceLine && !isNumberOnly && hasReasonableLength && 
-             (hasLettersAndDigits || !hasPrice) && !isReceiptPattern;
+             (hasLettersAndDigits || !hasPrice);
     });
     
-    // Duplikate entfernen und Ergebnisse bereinigen
-    const uniqueProducts = [...new Set(productLines)]
-      .map(line => {
-        // Preisinformationen entfernen (oft am Ende der Zeile)
-        return line.replace(/\s+\d+[.,]\d{2}\s*€?\s*$/, '')
-                   // Mengenangaben am Anfang entfernen
-                   .replace(/^\s*\d+\s*[xX]\s*/, '')
-                   // Zusätzliche Leerzeichen reduzieren
-                   .replace(/\s{2,}/g, ' ')
-                   .trim();
-      })
-      .filter(line => line.length > 3); // Zu kurze Linien nach Bereinigung entfernen
-    
-    console.log('Filtered product lines:', uniqueProducts);
-    return uniqueProducts;
+    console.log('Filtered product lines:', productLines);
+    return productLines;
   };
 
   const processImage = async (imageUrl: string) => {
@@ -116,81 +96,29 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         description: "Bitte warte, während die Quittung gescannt wird...",
       });
 
-      // Tesseract Worker mit optimierten Einstellungen für deutsche Kassenbons initialisieren
+      // Initialize Tesseract worker with optimized options for German receipts
       const worker = await createWorker({
         logger: m => console.log(m),
         langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       });
       
-      // Deutsche Sprachdaten laden - zusätzlich auch Englisch für gemischte Texte
-      await worker.loadLanguage('deu+eng');
+      // Load German language data
+      await worker.loadLanguage('deu');
       
-      // Tesseract für optimierte Kassenbon-Erkennung konfigurieren
-      await worker.initialize('deu+eng');
+      // Configure Tesseract for optimized German receipt scanning
+      await worker.initialize('deu');
       
-      // Tesseract-Parameter für bessere Texterkennung setzen
+      // Set Tesseract parameters for better receipt recognition
       await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ *',
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
         preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: PSM.AUTO, // Automatische Segmentierung für unterschiedliche Textblöcke
-        tessedit_ocr_engine_mode: 3, // LSTM-Engine für bessere Genauigkeit
-        tessjs_create_hocr: '0',
-        tessjs_create_tsv: '0',
-        textord_force_make_prop_words: '0',
-        textord_tablefind_recognize_tables: '0',
-        tessedit_do_invert: '0',
-        // Zusätzliche Parameter für die Verbesserung der Erkennung kleingeschriebener Texte
-        language_model_penalty_non_dict_word: '0.5',
-        language_model_penalty_case: '0.1', // Geringere Bestrafung für Großbuchstaben vs. Kleinbuchstaben
-        textord_min_linesize: '2.5',
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Using the proper enum value for a single uniform block of text
       });
       
-      // Bild vorverarbeiten - größere Breite für bessere Erkennung
-      const canvas = document.createElement('canvas');
-      const img = new Image();
-      
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-        img.src = imageUrl;
-      });
-      
-      // Größe für bessere OCR anpassen (größer machen falls zu klein)
-      const targetWidth = Math.max(1024, img.width);
-      const scaleFactor = targetWidth / img.width;
-      canvas.width = targetWidth;
-      canvas.height = img.height * scaleFactor;
-      
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        // Bildoptimierung für bessere OCR-Erkennung
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Kontrast erhöhen für bessere Erkennung kleingeschriebenen Textes
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        for (let i = 0; i < data.length; i += 4) {
-          // Schwarz-Weiß-Konvertierung mit angepasstem Schwellwert für Textkontrast
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          const threshold = 180; // Höherer Schwellwert für besseren Textkontrast
-          const newValue = avg < threshold ? 0 : 255;
-          
-          data[i] = data[i + 1] = data[i + 2] = newValue;
-        }
-        
-        ctx.putImageData(imageData, 0, 0);
-      }
-      
-      const enhancedImageUrl = canvas.toDataURL('image/png');
-      
-      // OCR mit optimiertem Bild durchführen
-      const result = await worker.recognize(enhancedImageUrl);
+      const result = await worker.recognize(imageUrl);
       console.log('OCR Result:', result);
       
-      // Text verarbeiten, um Produktinformationen mit verbesserter Filterung zu extrahieren
+      // Process the text to extract product information with improved filtering
       const productLines = filterProductLines(result.data.text);
       
       await worker.terminate();
@@ -213,7 +141,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   };
 
-  return null; // Diese Komponente rendert nichts
+  return null; // This component doesn't render anything
 };
 
 export default OcrProcessor;
