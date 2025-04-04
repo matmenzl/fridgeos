@@ -106,6 +106,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   // Sprachnotizen für die Anzeige verarbeiten
   const processedNotes = notes
+    // Sortierung umgedreht: neueste Einträge zuerst (höchste timestamp-Werte zuerst)
     .sort((a, b) => b.timestamp - a.timestamp)
     .map(note => {
       let displayText = note.text;
@@ -127,6 +128,7 @@ const ProductList: React.FC<ProductListProps> = ({
 
   // Kassenbeleg-Produkte für die Anzeige verarbeiten
   const processedReceiptProducts = receiptProducts
+    // Sortierung umgedreht: neueste Einträge zuerst (höchste timestamp-Werte zuerst)
     .sort((a, b) => b.timestamp - a.timestamp)
     .map(product => {
       // Produktname gründlich bereinigen
