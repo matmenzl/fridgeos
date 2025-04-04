@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -80,15 +79,11 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
   };
 
   const handleSubmit = form.handleSubmit((data) => {
-    // Format the complete text for the note
-    const formattedDate = data.expiryDate 
-      ? formatGermanDate(data.expiryDate)
-      : 'Kein Datum angegeben';
-      
-    const noteText = `Produkt: ${data.product}\nAblaufdatum: ${formattedDate}\nMenge: ${data.quantity}`;
+    // Save the product both as formatted text and as simple product name
+    const formattedText = `Produkt: ${data.product}${data.expiryDate ? `\nAblaufdatum: ${formatGermanDate(data.expiryDate)}` : ''}${data.quantity ? `\nMenge: ${data.quantity}` : ''}`;
     
     onSave({
-      text: noteText,
+      text: formattedText,
       metadata: data
     });
     

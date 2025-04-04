@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -43,7 +44,9 @@ const Index = () => {
   };
 
   const handleProductSave = (data: { text: string, metadata: any }) => {
+    // Save the product name directly
     if (data.metadata.product.trim()) {
+      // Save the product name as the note text, not the formatted text
       saveNote(data.metadata.product.trim());
       loadNotes();
       toast({
