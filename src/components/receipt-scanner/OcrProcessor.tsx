@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { createWorker, PSM, createScheduler } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 import { useToast } from "@/hooks/use-toast";
 
 interface OcrProcessorProps {
@@ -24,136 +24,64 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   }, [imageUrl]);
 
-  // Bildvorverarbeitung für bessere OCR-Ergebnisse
-  const preprocessImage = async (imageUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        
-        canvas.width = img.width;
-        canvas.height = img.height;
-        
-        // Originalbild zeichnen
-        ctx.drawImage(img, 0, 0);
-        
-        // Bild in Graustufen umwandeln
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        
-        for (let i = 0; i < data.length; i += 4) {
-          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          
-          // Kontrast erhöhen
-          const contrastedValue = (avg - 128) * 1.5 + 128;
-          
-          // Thresholding anwenden
-          const thresholdValue = contrastedValue > 150 ? 255 : 0;
-          
-          data[i] = thresholdValue;     // R
-          data[i + 1] = thresholdValue; // G
-          data[i + 2] = thresholdValue; // B
-        }
-        
-        ctx.putImageData(imageData, 0, 0);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = imageUrl;
-    });
-  };
-
-  // Verbesserte Line-Klassifizierung für deutsche Quittungen
-  const isProductLine = (line: string): boolean => {
-    const lowerLine = line.toLowerCase();
-    
-    // Exakte Muster für Nicht-Produkte
-    const nonProductPatterns = [
-      /^summe\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^gesamt\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^zwischensumme\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^mwst\s*\d+%\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^ust\s*\d+%\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^bar\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^rückgeld\s*:?\s*\d+[.,]\d{2}\s*€?$/i,
-      /^datum\s*:?\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}/i,
-      /^uhrzeit\s*:?\s*\d{1,2}:\d{2}/i,
-      /^bonnr\s*:?\s*\d+/i,
-      /^tel\s*:?\s*[\d\s/+-]+$/i,
-      /^rabatt/i,
-      /^kassenbon/i,
-      /^quittung/i,
-      /^beleg/i,
-      /^pfand/i,
-      /^artikelanzahl/i,
-      /^steuer/i,
-      /^netto/i,
-      /^brutto/i,
-      /^ec\s*-?\s*karte/i,
-      /^kreditkarte/i,
-      /^kartenzahlung/i,
-      /^kunden\s*-?\s*nr/i,
-      /^danke/i,
-      /^auf\s*wiedersehen/i,
-      /^öffnungszeiten/i,
-      /^www\./i,
-      /^http/i,
-      /^e-mail/i,
-      /^filiale/i,
-      /^markt/i
-    ];
-    
-    // Testen auf Nicht-Produkt-Muster
-    for (const pattern of nonProductPatterns) {
-      if (pattern.test(lowerLine)) {
-        return false;
-      }
-    }
-    
-    // Produkt-Erkennungsmuster
-    const productPatterns = [
-      // Typische Produkt-Preis-Muster: "Produkt 1,99€" oder "Produkt 1.99"
-      /[a-zäöüß]+.*\d+[.,]\d{2}\s*€?/i,
-      // Produkt mit Menge: "2x Milch 3,98"
-      /\d+\s*x\s*[a-zäöüß]+.*\d+[.,]\d{2}/i,
-      // Produkt mit Gewicht: "Käse 0,253kg 3,98"
-      /[a-zäöüß]+.*\d+[.,]\d{2,3}\s*kg.*\d+[.,]\d{2}/i
-    ];
-    
-    // Mind. ein Produktmuster und eine vernünftige Länge
-    for (const pattern of productPatterns) {
-      if (pattern.test(line) && line.length > 3 && line.length < 60) {
-        return true;
-      }
-    }
-    
-    // Heuristiken für Produktzeilen, die keine typischen Muster aufweisen
-    const hasLettersAndDigits = /[A-Za-zÄÖÜäöüß].*\d|\d.*[A-Za-zÄÖÜäöüß]/.test(line);
-    const hasPricePattern = /\d+[.,]\d{2}/.test(line);
-    const hasReasonableLength = line.length > 3 && line.length < 60;
-    const hasNoMetadataWords = !/(?:gesamtbetrag|bargeldbetrag|kartenbetrag|rechnung)/i.test(lowerLine);
-    
-    return hasReasonableLength && hasLettersAndDigits && hasPricePattern && hasNoMetadataWords;
-  };
-
-  // Optimierte Produktzeilenextraktion mit NLP-Ansatz
+  // Optimize text extraction for German receipts
   const filterProductLines = (text: string): string[] => {
-    // Zeilen aufteilen und bereinigen
+    // Split text into lines and clean them
     const lines = text.split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 2);
     
     console.log('Raw OCR lines:', lines);
     
-    // Produktzeilen mit dem verbesserten Klassifikator filtern
-    const productLines = lines.filter(isProductLine);
+    // German receipt-specific filtering
+    const productLines = lines.filter(line => {
+      const lowerLine = line.toLowerCase();
+      
+      // Remove common German receipt headers/footers/metadata
+      const isMetadata = 
+        lowerLine.includes('gesamt') ||
+        lowerLine.includes('summe') ||
+        lowerLine.includes('mwst') ||
+        lowerLine.includes('ust') ||
+        lowerLine.includes('datum') ||
+        lowerLine.includes('uhrzeit') ||
+        lowerLine.includes('rechnung') ||
+        lowerLine.includes('kassenbon') ||
+        lowerLine.includes('beleg') ||
+        lowerLine.includes('quittung') ||
+        lowerLine.includes('vielen dank') ||
+        lowerLine.includes('auf wiedersehen') ||
+        lowerLine.includes('zwischensumme') ||
+        lowerLine.includes('kasse') ||
+        lowerLine.includes('filiale') ||
+        lowerLine.includes('steuernr') ||
+        lowerLine.includes('steuer-nr') ||
+        lowerLine.includes('kundennr') ||
+        lowerLine.includes('kunden-nr') ||
+        lowerLine.includes('tel:') ||
+        lowerLine.includes('tel.') ||
+        lowerLine.includes('zahlen sie') ||
+        lowerLine.includes('zahlung') ||
+        lowerLine.includes('betrag');
+      
+      // Filter out price-only lines (common in German receipts)
+      const isPriceLine = /^\s*\d+[.,]\d{2}\s*€?\s*$/.test(line);
+      
+      // Filter out numbered lines that have just a number and no product name
+      const isNumberOnly = /^\s*\d+\s*$/.test(line);
+      
+      // Potential product lines often have a price
+      const hasPrice = /\d+[.,]\d{2}/.test(line);
+      
+      // Product lines usually have a mix of letters and numbers
+      const hasLettersAndDigits = /[A-Za-z].*\d|\d.*[A-Za-z]/.test(line);
+      
+      // Typical length of product descriptions
+      const hasReasonableLength = line.length > 3 && line.length < 60;
+
+      return !isMetadata && !isPriceLine && !isNumberOnly && hasReasonableLength && 
+             (hasLettersAndDigits || !hasPrice);
+    });
     
     console.log('Filtered product lines:', productLines);
     return productLines;
@@ -168,35 +96,29 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         description: "Bitte warte, während die Quittung gescannt wird...",
       });
 
-      // Bild vorverarbeiten für bessere OCR-Ergebnisse
-      console.log("Preprocessing image...");
-      const preprocessedImageUrl = await preprocessImage(imageUrl);
-      console.log("Preprocessing complete");
-
-      // Tesseract Worker mit optimierten Optionen initialisieren
+      // Initialize Tesseract worker with optimized options for German receipts
       const worker = await createWorker({
         logger: m => console.log(m),
         langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       });
       
-      // Deutsche Sprachdaten laden
+      // Load German language data
       await worker.loadLanguage('deu');
       
-      // Tesseract für optimierte Quittungserkennung konfigurieren
+      // Configure Tesseract for optimized German receipt scanning
       await worker.initialize('deu');
       
-      // Tesseract-Parameter für bessere Quittungserkennung setzen
+      // Set Tesseract parameters for better receipt recognition
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
         preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Using the proper enum value for a single uniform block of text
       });
       
-      // OCR auf dem vorverarbeiteten Bild ausführen
-      const result = await worker.recognize(preprocessedImageUrl);
+      const result = await worker.recognize(imageUrl);
       console.log('OCR Result:', result);
       
-      // Text verarbeiten, um Produktinformationen mit verbessertem Filtering zu extrahieren
+      // Process the text to extract product information with improved filtering
       const productLines = filterProductLines(result.data.text);
       
       await worker.terminate();
@@ -219,7 +141,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   };
 
-  return null; // Diese Komponente rendert nichts
+  return null; // This component doesn't render anything
 };
 
 export default OcrProcessor;
