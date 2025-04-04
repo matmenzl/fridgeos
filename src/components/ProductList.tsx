@@ -76,7 +76,8 @@ const ProductList: React.FC<ProductListProps> = ({
     
     if (data.isVoiceNote) {
       // For voice notes, we need to format the text similar to when we create it
-      const formattedText = `Produkt: ${data.product}${data.quantity ? `\nMenge: ${data.quantity}` : ''}`;
+      // Remove any quantity formatting to ensure it doesn't show up
+      const formattedText = `Produkt: ${data.product}`;
       updateNote(data.id, formattedText);
     } else {
       // For receipt products, we just update the product name
@@ -87,13 +88,16 @@ const ProductList: React.FC<ProductListProps> = ({
     onProductUpdate();
   };
 
-  // Display a product card with consistent UI
+  // Display a product card with consistent UI - ensure no quantity is displayed
   const renderProductCard = (
     id: string, 
     name: string, 
     isVoice: boolean, 
     onDeleteFn: (id: string) => void
   ) => {
+    // Clean the product name to remove any quantity information if present
+    const cleanedName = name.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
+    
     return (
       <Card key={id} className="w-full p-4 rounded-xl shadow-sm border-0">
         <div className="flex flex-col gap-2">
@@ -104,7 +108,7 @@ const ProductList: React.FC<ProductListProps> = ({
               ) : (
                 <ShoppingBag className="h-4 w-4 text-primary" />
               )}
-              <h3 className="text-xl font-bold">{name}</h3>
+              <h3 className="text-xl font-bold">{cleanedName}</h3>
             </div>
           </div>
           
@@ -119,7 +123,7 @@ const ProductList: React.FC<ProductListProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={() => handleEditClick(id, name, isVoice)}
+                onClick={() => handleEditClick(id, cleanedName, isVoice)}
                 className="text-gray-400 h-10 w-10"
               >
                 <Edit className="h-5 w-5" />
@@ -146,10 +150,13 @@ const ProductList: React.FC<ProductListProps> = ({
           .sort((a, b) => b.timestamp - a.timestamp)
           .map((note) => {
             // Extract just the product name if it's a formatted product note
-            const isFormattedProduct = note.text.includes('Produkt:') && note.text.includes('Ablaufdatum:');
-            const displayText = isFormattedProduct
-              ? note.text.split('\n')[0].replace('Produkt:', '').trim()
-              : note.text;
+            // Remove any quantity information
+            let displayText = note.text;
+            if (displayText.includes('Produkt:')) {
+              displayText = displayText.split('\n')[0].replace('Produkt:', '').trim();
+            }
+            // Further clean to remove any quantity mentions
+            displayText = displayText.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
             
             return renderProductCard(note.id, displayText, true, handleNoteDelete);
           })
@@ -158,9 +165,11 @@ const ProductList: React.FC<ProductListProps> = ({
       {receiptProducts.length > 0 && (
         receiptProducts
           .sort((a, b) => b.timestamp - a.timestamp)
-          .map((product) => 
-            renderProductCard(product.id, product.productName, false, handleProductDelete)
-          )
+          .map((product) => {
+            // Clean product name to remove any quantity information
+            const cleanedName = product.productName.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
+            return renderProductCard(product.id, cleanedName, false, handleProductDelete);
+          })
       )}
 
       {/* Add the EditProductDialog component */}
