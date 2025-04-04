@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 // Use the project ID to construct the Supabase URL
@@ -31,10 +32,43 @@ CREATE TABLE IF NOT EXISTS public.notes (
 
 CREATE TABLE IF NOT EXISTS public.receipt_products (
   id text primary key,
-  "productName" text not null,
+  "productName" text not null,  -- Notice the quotes around productName (case sensitive)
   timestamp bigint not null
 );
 `;
+
+// A helper function to describe a table structure
+const describeTableStructure = async (tableName: string) => {
+  try {
+    const { data, error } = await supabase.rpc(
+      'describe_table', 
+      { table_name: tableName }
+    );
+    
+    if (error) {
+      console.warn(`Could not describe table ${tableName}:`, error);
+      
+      // Fallback: Try direct query for columns
+      const { data: columnData, error: columnError } = await supabase
+        .from('information_schema.columns')
+        .select('column_name, data_type')
+        .eq('table_name', tableName)
+        .eq('table_schema', 'public');
+        
+      if (columnError) {
+        console.error(`Could not get columns for ${tableName}:`, columnError);
+        return null;
+      }
+      
+      return columnData;
+    }
+    
+    return data;
+  } catch (e) {
+    console.error(`Error describing table ${tableName}:`, e);
+    return null;
+  }
+};
 
 // Check for tables and inform the user if they need to be created
 export const initializeTables = async () => {
@@ -63,6 +97,12 @@ export const initializeTables = async () => {
       .select('id')
       .limit(1);
       
+    // If the table exists, check its columns
+    if (!checkProductsError) {
+      const productColumns = await describeTableStructure('receipt_products');
+      console.log('Product table columns:', productColumns);
+    }
+      
     // If the table doesn't exist, inform the user
     if (checkProductsError && checkProductsError.code === '42P01') {
       console.log('Receipt products table does not exist.');
@@ -70,7 +110,7 @@ export const initializeTables = async () => {
         IMPORTANT: The receipt_products table needs to be created manually. 
         Please create it in the Supabase dashboard with these columns:
         - id (text, primary key)
-        - productName (text, not null)
+        - "productName" (text, not null) - Notice the quotes for camelCase
         - timestamp (bigint, not null)
       `);
     }

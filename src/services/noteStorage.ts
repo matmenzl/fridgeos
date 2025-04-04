@@ -1,4 +1,3 @@
-
 import { supabase, initializeTables } from './supabaseClient';
 
 export interface Note {
@@ -12,6 +11,92 @@ export interface ProductNote {
   productName: string;  // This must match exactly what's in the database
   timestamp: number;
 }
+
+export const testDatabaseSchema = async () => {
+  try {
+    const { data: sampleProduct, error: sampleError } = await supabase
+      .from('receipt_products')
+      .select('*')
+      .limit(1);
+    
+    if (sampleError) {
+      console.error('Error checking product schema:', sampleError);
+      return { success: false, error: sampleError };
+    }
+    
+    if (sampleProduct && sampleProduct.length > 0) {
+      console.log('Product schema columns:', Object.keys(sampleProduct[0]));
+    } else {
+      console.log('Product table exists but is empty');
+    }
+    
+    const testProduct = {
+      id: 'test-' + Date.now().toString(),
+      productName: 'Test Product',
+      timestamp: Date.now()
+    };
+    
+    console.log('Attempting direct test insert with:', testProduct);
+    
+    const { data: insertData, error: insertError } = await supabase
+      .from('receipt_products')
+      .insert(testProduct)
+      .select();
+    
+    if (insertError) {
+      console.error('Test insert failed:', insertError);
+      
+      if (insertError.message && insertError.message.includes('productName')) {
+        console.log('Trying alternative column name formats...');
+        
+        const testSnakeCase = {
+          id: 'test-snake-' + Date.now().toString(),
+          product_name: 'Test Product Snake Case',
+          timestamp: Date.now()
+        };
+        
+        const { error: snakeError } = await supabase
+          .from('receipt_products')
+          .insert(testSnakeCase);
+        
+        if (!snakeError) {
+          console.log('SUCCESS with snake_case (product_name)');
+          return { 
+            success: true, 
+            message: 'Database uses snake_case (product_name)',
+            correctFormat: 'snake_case'
+          };
+        }
+        
+        const rawQuery = `
+          INSERT INTO receipt_products (id, "productName", timestamp)
+          VALUES ('test-raw-${Date.now()}', 'Test Product Raw SQL', ${Date.now()})
+        `;
+        
+        const { error: rawError } = await supabase.rpc('execute_sql', { 
+          sql: rawQuery 
+        });
+        
+        if (!rawError) {
+          console.log('SUCCESS with raw SQL using quotes');
+          return { 
+            success: true,
+            message: 'Database uses camelCase with quotes ("productName")',
+            correctFormat: 'quotedCamel'
+          };
+        }
+      }
+      
+      return { success: false, error: insertError };
+    }
+    
+    console.log('Test insert successful:', insertData);
+    return { success: true, message: 'Schema looks good!' };
+  } catch (error) {
+    console.error('Schema test failed:', error);
+    return { success: false, error };
+  }
+};
 
 export const migrateLocalDataToSupabase = async () => {
   try {
@@ -97,10 +182,9 @@ export const saveNote = async (text: string): Promise<Note | null> => {
 export const saveReceiptProduct = async (productName: string): Promise<ProductNote | null> => {
   console.log('Versuche Produkt zu speichern:', productName);
   
-  // Make sure the object property name matches exactly what's in the database
   const newProduct = {
     id: Date.now().toString(),
-    productName,  // This must match the column name in the database
+    productName,
     timestamp: Date.now()
   };
   
@@ -120,6 +204,8 @@ export const saveReceiptProduct = async (productName: string): Promise<ProductNo
         message: error.message,
         details: error.details,
       });
+      
+      await testDatabaseSchema();
       return null;
     }
     
@@ -272,6 +358,15 @@ export const deleteReceiptProduct = async (id: string): Promise<boolean> => {
 
 export const testSupabaseConnection = async (): Promise<{success: boolean, message: string}> => {
   try {
+    const schemaTest = await testDatabaseSchema();
+    
+    if (!schemaTest.success) {
+      return {
+        success: false,
+        message: `Schema test failed: ${schemaTest.error?.message || 'Unknown error'}`
+      };
+    }
+    
     const { error } = await supabase.from('notes').select('id').limit(1);
     
     if (error) {

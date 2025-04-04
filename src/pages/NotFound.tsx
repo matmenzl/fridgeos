@@ -29,13 +29,17 @@ CREATE TABLE IF NOT EXISTS public.notes (
 
 CREATE TABLE IF NOT EXISTS public.receipt_products (
   id text primary key,
-  "productName" text not null,  -- Notice the quotes around productName
+  "productName" text not null,  -- Notice the quotes around productName (case sensitive)
   timestamp bigint not null
 );
 
--- If you're getting an error about 'product_name' not existing, run this:
--- ALTER TABLE public.receipt_products RENAME COLUMN product_name TO "productName";
--- OR if you want to fix the code instead, modify the interface ProductNote in noteStorage.ts to use product_name`
+-- If you're getting an error about column not existing, check your table structure:
+-- In your Supabase dashboard, go to Table Editor, then select the receipt_products table
+-- If your column is named differently, you have two options:
+-- 1. Rename the column in the database:
+-- ALTER TABLE public.receipt_products RENAME COLUMN your_current_column TO "productName";
+-- 
+-- 2. Or modify the interface in noteStorage.ts to match your database column name`
       });
     };
     
