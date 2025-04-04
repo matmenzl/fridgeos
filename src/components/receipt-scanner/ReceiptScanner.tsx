@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Camera } from "lucide-react";
-import { saveNote } from '../../services/noteStorage';
+import { Camera, Trash } from "lucide-react";
+import { saveReceiptProduct } from '../../services/noteStorage';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
@@ -60,15 +60,17 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const saveSelectedItems = () => {
     if (selectedItems.length > 0) {
-      const productsText = `Von Quittung gescannt:\n${selectedItems.join('\n')}`;
-      saveNote(productsText);
+      // Jedes ausgewählte Produkt einzeln speichern
+      selectedItems.forEach(item => {
+        saveReceiptProduct(item);
+      });
       
       toast({
         title: "Produkte gespeichert",
         description: `${selectedItems.length} Produkte wurden gespeichert.`,
       });
       
-      // Close dialog and reset state
+      // Dialog schließen und Status zurücksetzen
       onOpenChange(false);
       setImageUrl(null);
       setResults([]);
@@ -79,6 +81,14 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         description: "Bitte wähle mindestens ein Produkt aus.",
         variant: "destructive",
       });
+    }
+  };
+
+  // Unterstütze das Löschen eines einzelnen erkannten Produkts aus den Ergebnissen
+  const handleRemoveItem = (itemToRemove: string) => {
+    setResults(results.filter(item => item !== itemToRemove));
+    if (selectedItems.includes(itemToRemove)) {
+      setSelectedItems(selectedItems.filter(item => item !== itemToRemove));
     }
   };
 
@@ -114,6 +124,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
                     results={results} 
                     selectedItems={selectedItems} 
                     onToggleSelection={toggleItemSelection} 
+                    onRemoveItem={handleRemoveItem}
                   />
                   
                   <div className="flex gap-2 justify-center">

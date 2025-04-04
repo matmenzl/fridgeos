@@ -6,3 +6,8 @@ export interface ProductFormValues {
 }
 
 export type CurrentFieldType = 'product' | 'expiryDate' | 'quantity';
+
+export interface ScannedProduct {
+  id: string;
+  name: string;
+}

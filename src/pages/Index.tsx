@@ -3,26 +3,33 @@ import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
 import MenuSuggestions from '../components/MenuSuggestions';
-import { getAllNotes, saveNote, Note } from '../services/noteStorage';
+import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, Scan } from "lucide-react";
+import { Plus, Scan, ShoppingBag } from "lucide-react";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [receiptProducts, setReceiptProducts] = useState<ProductNote[]>([]);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [scannerDialogOpen, setScannerDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadNotes();
+    loadReceiptProducts();
   }, []);
 
   const loadNotes = () => {
     const savedNotes = getAllNotes();
     setNotes(savedNotes);
+  };
+
+  const loadReceiptProducts = () => {
+    const savedProducts = getAllReceiptProducts();
+    setReceiptProducts(savedProducts);
   };
 
   const handleTranscriptComplete = (transcript: string) => {
@@ -45,6 +52,15 @@ const Index = () => {
         description: "Dein Produkt wurde erfolgreich gespeichert.",
       });
     }
+  };
+
+  const handleDeleteReceiptProduct = (id: string) => {
+    deleteReceiptProduct(id);
+    loadReceiptProducts();
+    toast({
+      title: "Produkt gelöscht",
+      description: "Das Produkt wurde erfolgreich gelöscht.",
+    });
   };
 
   return (
@@ -77,7 +93,8 @@ const Index = () => {
       <h2 className="text-xl font-semibold mb-4">Erfasste Lebensmittel</h2>
       
       <div className="grid gap-4 mb-8">
-        {notes.length > 0 ? (
+        {/* Anzeige der Voice-erfassten Notizen */}
+        {notes.length > 0 && (
           notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
             <NoteCard 
               key={note.id} 
@@ -85,10 +102,32 @@ const Index = () => {
               onDelete={loadNotes} 
             />
           ))
-        ) : (
+        )}
+        
+        {/* Anzeige der gescannten Produkte */}
+        {receiptProducts.length > 0 && (
+          receiptProducts.sort((a, b) => b.timestamp - a.timestamp).map((product) => (
+            <div key={product.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                <span>{product.productName}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => handleDeleteReceiptProduct(product.id)} 
+                className="text-destructive h-8 w-8"
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </div>
+          ))
+        )}
+        
+        {notes.length === 0 && receiptProducts.length === 0 && (
           <div className="text-center p-8 bg-muted rounded-lg">
             <p className="text-muted-foreground">
-              Keine Notizen vorhanden. Nimm deine erste Sprachnotiz auf!
+              Keine Lebensmittel vorhanden. Erfasse dein erstes Produkt!
             </p>
           </div>
         )}
