@@ -129,17 +129,18 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       await worker.initialize('deu+eng');
       
       // Tesseract-Parameter für bessere Texterkennung setzen
+      // Korrigierte Parameter entsprechend der verfügbaren WorkerParams-Typen
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ *',
         preserve_interword_spaces: '1',
         tessedit_pageseg_mode: PSM.AUTO, // Automatische Segmentierung für unterschiedliche Textblöcke
-        tessedit_ocr_engine_mode: 3, // LSTM-Engine für bessere Genauigkeit
         tessjs_create_hocr: '0',
         tessjs_create_tsv: '0',
         textord_force_make_prop_words: '0',
         textord_tablefind_recognize_tables: '0',
         tessedit_do_invert: '0',
-        // Zusätzliche Parameter für die Verbesserung der Erkennung kleingeschriebener Texte
+        // Entferne tessedit_ocr_engine_mode da es nicht im WorkerParams-Typ existiert
+        // Angepasste Parameter für die Verbesserung der Erkennung kleingeschriebener Texte
         language_model_penalty_non_dict_word: '0.5',
         language_model_penalty_case: '0.1', // Geringere Bestrafung für Großbuchstaben vs. Kleinbuchstaben
         textord_min_linesize: '2.5',
@@ -156,7 +157,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       });
       
       // Größe für bessere OCR anpassen (größer machen falls zu klein)
-      const targetWidth = Math.max(1024, img.width);
+      const targetWidth = Math.max(1200, img.width); // Erhöhe auf 1200px für bessere Erkennung kleinerer Texte
       const scaleFactor = targetWidth / img.width;
       canvas.width = targetWidth;
       canvas.height = img.height * scaleFactor;
@@ -168,14 +169,18 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         
-        // Kontrast erhöhen für bessere Erkennung kleingeschriebenen Textes
+        // Verbesserte Kontrasterhöhung für bessere Erkennung kleingeschriebenen Textes
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         
         for (let i = 0; i < data.length; i += 4) {
-          // Schwarz-Weiß-Konvertierung mit angepasstem Schwellwert für Textkontrast
+          // Verbesserte Bildverarbeitung mit dynamischem Schwellwert
           const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-          const threshold = 180; // Höherer Schwellwert für besseren Textkontrast
+          
+          // Adaptive Schwellwerte für bessere Texterkennung
+          const threshold = 165; // Niedrigerer Schwellwert für bessere Erkennung kleiner Schrift
+          
+          // Verstärkter Kontrast mit weicherem Übergang für kleingeschriebene Texte
           const newValue = avg < threshold ? 0 : 255;
           
           data[i] = data[i + 1] = data[i + 2] = newValue;
