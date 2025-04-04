@@ -13,7 +13,7 @@ const PageHeader: React.FC = () => {
         <span>FridgeOS</span>
       </h1>
       <p className="text-white/90 text-lg">
-        Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.
+        Verwalte deine Lenbesmittel smarter und koche kreativer ohne Stress - neu mit KI-generierten Rezeptideen.
       </p>
     </header>
   );
