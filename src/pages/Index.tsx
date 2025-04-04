@@ -6,7 +6,7 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, Scan, ShoppingBag, Trash, Package } from "lucide-react";
+import { Plus, Scan, ShoppingBag, Trash } from "lucide-react";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 
@@ -78,10 +78,7 @@ const Index = () => {
   return (
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center gap-2">
-          <Package className="h-6 w-6 text-primary" />
-          <span>Fridgie</span>
-        </h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Fridgie</h1>
         <p className="text-muted-foreground">Food-Checkin- und Checkout für möglichst wenig Foodwaste in deinem Zuhause.</p>
       </header>
 
