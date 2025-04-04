@@ -67,6 +67,12 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     } catch (error) {
       console.error('Fehler beim Laden des Rezepts:', error);
       setRecipe('Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');
+      
+      toast({
+        title: "Fehler beim Laden des Rezepts",
+        description: "Bitte versuche es später erneut.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoadingRecipe(false);
     }
@@ -76,9 +82,12 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   const checkSupabaseFunction = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('menu-suggestions', {
-        body: { action: 'ping' }
+        body: { action: 'ping' },
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
-      return true;
+      return !error;
     } catch (error) {
       console.error('Supabase Edge-Funktion nicht verfügbar:', error);
       return false;

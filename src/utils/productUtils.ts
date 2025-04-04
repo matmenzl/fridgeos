@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
@@ -26,7 +27,10 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   try {
     // Rufe die Edge-Funktion auf
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
-      body: { products, action: 'getMenuSuggestions' }
+      body: { products, action: 'getMenuSuggestions' },
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
     
     if (error) {
@@ -53,7 +57,10 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
   try {
     // Rufe die Edge-Funktion auf
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
-      body: { products: suggestion, action: 'getRecipe' }
+      body: { products: suggestion, action: 'getRecipe' },
+      headers: {
+        'Content-Type': 'application/json' 
+      }
     });
     
     if (error) {
