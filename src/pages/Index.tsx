@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Note, ProductNote, deleteReceiptProduct, getAllNotes, getAllReceiptProducts, saveNote, migrateNotesToSupabase, migrateReceiptProductsToSupabase } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/receipt-scanner/ReceiptScanner';
 import MenuSuggestions from '../components/MenuSuggestions';
