@@ -1,16 +1,18 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import ProductCard from './ProductCard';
 import { FoodCategory } from '../../utils/foodCategories';
+import ProductCard from './ProductCard';
+
+interface Product {
+  id: string;
+  name: string;
+  isVoice: boolean;
+  category: FoodCategory;
+  timestamp: number;
+}
 
 interface FilteredProductListProps {
-  products: Array<{
-    id: string;
-    name: string;
-    isVoice: boolean;
-    category: FoodCategory;
-  }>;
+  products: Product[];
   selectedCategories: FoodCategory[];
   onDeleteNote: (id: string) => void;
   onDeleteProduct: (id: string) => void;
@@ -26,40 +28,53 @@ const FilteredProductList: React.FC<FilteredProductListProps> = ({
   onEditClick,
   clearFilters
 }) => {
-  // Filter products based on selected categories
-  const filteredProducts = products.filter(item => {
-    if (selectedCategories.length === 0) return true; // Show all when no filters are applied
-    return selectedCategories.includes(item.category);
-  });
+  // Apply category filters
+  const filteredProducts = selectedCategories.length > 0
+    ? products.filter(product => selectedCategories.includes(product.category))
+    : products;
 
-  if (filteredProducts.length === 0) {
-    return (
-      <div className="text-center p-8 bg-muted rounded-lg">
-        <p className="text-muted-foreground">
-          Keine Produkte für die ausgewählten Kategorien gefunden.
-        </p>
-        {selectedCategories.length > 0 && (
-          <Button variant="outline" size="sm" onClick={clearFilters} className="mt-2">
-            Filter zurücksetzen
-          </Button>
-        )}
-      </div>
-    );
-  }
+  // Handle delete based on product type
+  const handleDelete = (id: string, isVoice: boolean) => {
+    if (isVoice) {
+      onDeleteNote(id);
+    } else {
+      onDeleteProduct(id);
+    }
+  };
+
+  // Check if we need to show "no results" message
+  const showNoResults = filteredProducts.length === 0 && selectedCategories.length > 0;
 
   return (
-    <div className="grid gap-4">
-      {filteredProducts.map(item => (
-        <ProductCard
-          key={item.id}
-          id={item.id}
-          name={item.name}
-          isVoice={item.isVoice}
-          category={item.category}
-          onDelete={item.isVoice ? onDeleteNote : onDeleteProduct}
-          onEdit={onEditClick}
-        />
-      ))}
+    <div className="space-y-4">
+      {/* No results message with button to clear filters */}
+      {showNoResults && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">Keine Produkte in den ausgewählten Kategorien gefunden.</p>
+          <button 
+            onClick={clearFilters}
+            className="text-primary hover:underline"
+          >
+            Filter zurücksetzen
+          </button>
+        </div>
+      )}
+      
+      {/* Products grid */}
+      <div className="grid grid-cols-1 gap-4">
+        {filteredProducts.map((product) => (
+          <ProductCard
+            key={product.id}
+            id={product.id}
+            name={product.name}
+            isVoice={product.isVoice}
+            category={product.category}
+            timestamp={product.timestamp}
+            onDelete={() => handleDelete(product.id, product.isVoice)}
+            onEdit={onEditClick}
+          />
+        ))}
+      </div>
     </div>
   );
 };
