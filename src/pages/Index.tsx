@@ -44,14 +44,24 @@ const Index = () => {
   };
 
   const handleProductSave = (data: { text: string, metadata: any }) => {
+    console.log("Saving product:", data);
     // Save the product name directly
-    if (data.metadata.product.trim()) {
+    if (data.metadata.product && data.metadata.product.trim()) {
       // Save the product name as the note text, not the formatted text
-      saveNote(data.metadata.product.trim());
+      const productName = data.metadata.product.trim();
+      console.log("Saving product name:", productName);
+      saveNote(productName);
       loadNotes();
       toast({
         title: "Produkt gespeichert",
-        description: `"${data.metadata.product}" wurde erfolgreich gespeichert.`,
+        description: `"${productName}" wurde erfolgreich gespeichert.`,
+      });
+    } else {
+      console.error("No product name found in:", data);
+      toast({
+        title: "Fehler",
+        description: "Beim Speichern des Produkts ist ein Fehler aufgetreten.",
+        variant: "destructive",
       });
     }
   };

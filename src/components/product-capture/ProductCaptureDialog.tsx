@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -79,14 +80,26 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
   };
 
   const handleSubmit = form.handleSubmit((data) => {
-    // Save the product both as formatted text and as simple product name
+    // Make sure we're passing the product name properly
+    if (!data.product || !data.product.trim()) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie einen Produktnamen ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create formatted text for display purposes
     const formattedText = `Produkt: ${data.product}${data.expiryDate ? `\nAblaufdatum: ${formatGermanDate(data.expiryDate)}` : ''}${data.quantity ? `\nMenge: ${data.quantity}` : ''}`;
     
+    // Call the onSave function with both the formatted text and the metadata
     onSave({
       text: formattedText,
       metadata: data
     });
     
+    // Reset the form and close the dialog
     form.reset();
     setCurrentField('product');
     onOpenChange(false);
