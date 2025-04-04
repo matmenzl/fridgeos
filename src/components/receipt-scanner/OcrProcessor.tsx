@@ -1,7 +1,10 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createWorker, PSM } from 'tesseract.js';
 import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface OcrProcessorProps {
   imageUrl: string;
@@ -17,8 +20,10 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
   onError
 }) => {
   const { toast } = useToast();
+  const [progress, setProgress] = useState(0);
+  const [processingError, setProcessingError] = useState<Error | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (imageUrl) {
       processImage(imageUrl);
     }
@@ -89,6 +94,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
 
   const processImage = async (imageUrl: string) => {
     onProcessingStart();
+    setProcessingError(null);
     
     try {
       toast({
@@ -96,9 +102,19 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         description: "Bitte warte, während die Quittung gescannt wird...",
       });
 
+      // Überprüfe, ob das Bild gültig ist
+      if (!imageUrl.startsWith('data:image')) {
+        throw new Error('Ungültiges Bildformat. Bitte versuche es erneut mit einem anderen Bild.');
+      }
+
       // Initialize Tesseract worker with optimized options for German receipts
       const worker = await createWorker({
-        logger: m => console.log(m),
+        logger: m => {
+          console.log(m);
+          if (m.progress !== undefined) {
+            setProgress(Math.round(m.progress * 100));
+          }
+        },
         langPath: 'https://tessdata.projectnaptha.com/4.0.0',
       });
       
@@ -131,7 +147,9 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       });
     } catch (error) {
       console.error('OCR Error:', error);
-      onError(error instanceof Error ? error : new Error('Unknown OCR error'));
+      const finalError = error instanceof Error ? error : new Error('Unknown OCR error');
+      setProcessingError(finalError);
+      onError(finalError);
       
       toast({
         title: "Fehler bei der Texterkennung",
@@ -141,7 +159,41 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   };
 
-  return null; // This component doesn't render anything
+  const dismissError = () => {
+    setProcessingError(null);
+    // Hier können wir auch wieder zurück zur Kameraansicht navigieren
+    onError(new Error('Processing cancelled by user'));
+  };
+
+  return (
+    <>
+      {progress > 0 && progress < 100 && (
+        <div className="mb-4">
+          <p className="text-sm text-muted-foreground mb-2 text-center">
+            Verarbeitung: {progress}%
+          </p>
+          <Progress value={progress} className="w-full h-2" />
+        </div>
+      )}
+      
+      <AlertDialog open={!!processingError}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fehler bei der Verarbeitung</AlertDialogTitle>
+            <AlertDialogDescription>
+              {processingError?.message || 'Es ist ein unbekannter Fehler aufgetreten.'}
+              <p className="mt-2">
+                Bitte versuche es mit einem klareren Bild oder überprüfe das Bildformat.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Button onClick={dismissError} className="mt-4">
+            Verstanden
+          </Button>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 };
 
 export default OcrProcessor;

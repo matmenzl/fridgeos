@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Trash } from "lucide-react";
-import { saveReceiptProduct, getAllReceiptProducts } from '../../services/noteStorage';
+import { saveReceiptProduct } from '../../services/noteStorage';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
@@ -44,6 +44,14 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   const handleProcessingError = (error: Error) => {
     console.error('Processing error:', error);
     setScanning(false);
+    
+    // Wenn der Nutzer den Prozess abbricht (über den Dialog), zeigen wir keine weitere Fehlermeldung
+    if (error.message === 'Processing cancelled by user') {
+      return;
+    }
+    
+    // Wenn wir einen Bildverarbeitungsfehler haben, zurück zur Kamera gehen
+    setImageUrl(null);
   };
 
   const toggleItemSelection = (item: string) => {
@@ -113,7 +121,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         <DialogHeader>
           <DialogTitle>Quittung scannen</DialogTitle>
           <DialogDescription>
-            Fotografiere eine Quittung, um Produkte zu erfassen.
+            Fotografiere eine Quittung oder lade ein Bild hoch, um Produkte zu erfassen.
           </DialogDescription>
         </DialogHeader>
         
