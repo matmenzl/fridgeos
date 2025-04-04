@@ -30,7 +30,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
   const form = useForm<ProductFormValues>({
     defaultValues: {
       product: initialData.productName,
-      quantity: '500 g',
+      quantity: '',
       id: initialData.id,
       isVoiceNote: initialData.isVoiceNote
     }
@@ -41,7 +41,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
     if (open) {
       form.reset({
         product: initialData.productName,
-        quantity: '500 g',
+        quantity: '',
         id: initialData.id,
         isVoiceNote: initialData.isVoiceNote
       });
@@ -81,19 +81,6 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({
                   <FormLabel>Produkt</FormLabel>
                   <FormControl>
                     <Input placeholder="z.B. Fleisch" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="quantity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Menge</FormLabel>
-                  <FormControl>
-                    <Input placeholder="z.B. 250 Gramm" {...field} />
                   </FormControl>
                 </FormItem>
               )}
