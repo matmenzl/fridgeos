@@ -26,11 +26,14 @@ const SpeechRecorder: React.FC<SpeechRecorderProps> = ({
 
   useEffect(() => {
     speechRecognition.onResult((text) => {
+      console.log("Speech recognition result:", text);
       setTranscript(text);
     });
 
     speechRecognition.onEnd(() => {
+      console.log("Speech recognition ended, transcript:", transcript);
       setIsListening(false);
+      // We don't call onTranscriptComplete here because the transcript might not be updated yet
     });
 
     return () => {
@@ -61,8 +64,12 @@ const SpeechRecorder: React.FC<SpeechRecorderProps> = ({
 
   const stopListening = () => {
     if (isListening) {
+      console.log("Stopping speech recognition, current transcript:", transcript);
       speechRecognition.stop();
-      onTranscriptComplete();
+      // We explicitly call onTranscriptComplete here to ensure we use the latest transcript
+      setTimeout(() => {
+        onTranscriptComplete();
+      }, 100); // Small delay to ensure state is updated
     }
   };
 

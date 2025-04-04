@@ -11,6 +11,7 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
   private recognition: SpeechRecognition | null = null;
   private resultCallback: ((transcript: string) => void) | null = null;
   private endCallback: (() => void) | null = null;
+  private lastTranscript: string = '';
   isListening: boolean = false;
 
   constructor() {
@@ -30,12 +31,16 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
             .map(result => result.transcript)
             .join('');
           
+          this.lastTranscript = transcript;
+          
           if (this.resultCallback) {
             this.resultCallback(transcript);
           }
         };
 
         this.recognition.onend = () => {
+          console.log("Speech recognition ended with transcript:", this.lastTranscript);
+          
           // If we're still listening but the browser stopped recognition, restart it
           if (this.isListening && this.recognition) {
             try {
@@ -61,6 +66,7 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
   }
 
   start(): void {
+    this.lastTranscript = '';
     if (this.recognition) {
       try {
         this.recognition.start();
@@ -75,6 +81,10 @@ class BrowserSpeechRecognition implements SpeechRecognitionService {
 
   stop(): void {
     if (this.recognition && this.isListening) {
+      // Make one final callback with the latest transcript before stopping
+      if (this.resultCallback && this.lastTranscript) {
+        this.resultCallback(this.lastTranscript);
+      }
       this.recognition.stop();
       this.isListening = false;
     }

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,11 +35,22 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
     }
   });
 
+  // Use useEffect to log changes to transcript
+  useEffect(() => {
+    console.log("Transcript changed:", transcript);
+  }, [transcript]);
+
   const handleTranscriptComplete = () => {
-    if (!transcript.trim()) return;
+    console.log("Handling transcript completion. Current transcript:", transcript, "Current field:", currentField);
+    
+    if (!transcript.trim()) {
+      console.log("Transcript is empty, not processing.");
+      return;
+    }
     
     switch (currentField) {
       case 'product':
+        console.log("Setting product value:", transcript);
         form.setValue('product', transcript);
         toast({
           title: "Produkt erfasst",
@@ -68,6 +79,7 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
         }
         break;
       case 'quantity':
+        console.log("Setting quantity value:", transcript);
         form.setValue('quantity', transcript);
         toast({
           title: "Menge erfasst",
@@ -76,10 +88,13 @@ const ProductCaptureDialog: React.FC<ProductCaptureDialogProps> = ({
         break;
     }
     
+    // Clear transcript after processing
     setTranscript('');
   };
 
   const handleSubmit = form.handleSubmit((data) => {
+    console.log("Form submission with data:", data);
+    
     // Make sure we're passing the product name properly
     if (!data.product || !data.product.trim()) {
       toast({
