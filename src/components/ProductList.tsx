@@ -88,6 +88,21 @@ const ProductList: React.FC<ProductListProps> = ({
     onProductUpdate();
   };
 
+  // Improved function to remove quantity information from product names
+  const cleanProductName = (name: string): string => {
+    // First, remove "Menge: X" patterns if present
+    let cleaned = name.replace(/Menge:\s*[\d,.]+\s*[a-zA-Z]+/gi, '');
+    
+    // Then remove common quantity patterns (including German formats with comma)
+    cleaned = cleaned.replace(/\d+[,.]?\d*\s*[gG]|^\d+\s*[kK][gG]|^\d+[,.]?\d*\s*[mM][lL]|^\d+[,.]?\d*\s*[lL]/g, '');
+    
+    // Also remove standalone numbers that might be quantities
+    cleaned = cleaned.replace(/^\d+\s/, '');
+    
+    // Trim extra whitespace that might be left after removing quantities
+    return cleaned.trim();
+  };
+
   // Display a product card with consistent UI - ensure no quantity is displayed
   const renderProductCard = (
     id: string, 
@@ -95,8 +110,8 @@ const ProductList: React.FC<ProductListProps> = ({
     isVoice: boolean, 
     onDeleteFn: (id: string) => void
   ) => {
-    // Clean the product name to remove any quantity information if present
-    const cleanedName = name.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
+    // Apply the improved cleaning function
+    const cleanedName = cleanProductName(name);
     
     return (
       <Card key={id} className="w-full p-4 rounded-xl shadow-sm border-0">
@@ -150,13 +165,13 @@ const ProductList: React.FC<ProductListProps> = ({
           .sort((a, b) => b.timestamp - a.timestamp)
           .map((note) => {
             // Extract just the product name if it's a formatted product note
-            // Remove any quantity information
             let displayText = note.text;
             if (displayText.includes('Produkt:')) {
               displayText = displayText.split('\n')[0].replace('Produkt:', '').trim();
             }
-            // Further clean to remove any quantity mentions
-            displayText = displayText.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
+            
+            // Apply the improved cleaning function
+            displayText = cleanProductName(displayText);
             
             return renderProductCard(note.id, displayText, true, handleNoteDelete);
           })
@@ -166,8 +181,8 @@ const ProductList: React.FC<ProductListProps> = ({
         receiptProducts
           .sort((a, b) => b.timestamp - a.timestamp)
           .map((product) => {
-            // Clean product name to remove any quantity information
-            const cleanedName = product.productName.replace(/\d+\s*g|\d+\s*kg|\d+\s*ml|\d+\s*l/gi, '').trim();
+            // Apply the improved cleaning function
+            const cleanedName = cleanProductName(product.productName);
             return renderProductCard(product.id, cleanedName, false, handleProductDelete);
           })
       )}
