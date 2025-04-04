@@ -2,10 +2,10 @@
 /**
  * Processes an image from the request body and converts it to a form suitable for the Mindee API
  */
-export function processImageFromRequest(req: Request): { 
+export async function processImageFromRequest(req: Request): Promise<{ 
   formData: FormData; 
   originalImageFormat: string; 
-} {
+}> {
   // Parse request body
   const contentType = req.headers.get("content-type") || "";
   let fileData: Uint8Array;
@@ -19,32 +19,24 @@ export function processImageFromRequest(req: Request): {
       let json;
       
       try {
-        // If we have the bodyText property from req (added in index.ts)
-        if (req.bodyText) {
-          console.log("Using pre-parsed bodyText");
-          json = JSON.parse(req.bodyText);
-        } else {
-          // Try to parse the request body directly
-          const requestBodyText = req.text ? await req.text() : "";
-          console.log("Request body text length:", requestBodyText.length);
-          
-          if (requestBodyText && requestBodyText.length > 0) {
-            try {
-              json = JSON.parse(requestBodyText);
-            } catch (e) {
-              console.error("Failed to parse request body text:", e);
-              throw new Error(`Invalid JSON in request body: ${e.message}`);
-            }
-          } else {
-            throw new Error("Empty request body");
+        const requestBodyText = await req.text();
+        console.log("Request body text length:", requestBodyText.length);
+        
+        if (requestBodyText && requestBodyText.length > 0) {
+          try {
+            json = JSON.parse(requestBodyText);
+            console.log("JSON parsed successfully");
+          } catch (e) {
+            console.error("Failed to parse request body text:", e);
+            throw new Error(`Invalid JSON in request body: ${e.message}`);
           }
+        } else {
+          throw new Error("Empty request body");
         }
       } catch (e) {
         console.error("Error accessing request body:", e);
         throw new Error(`Could not access request body: ${e.message}`);
       }
-      
-      console.log("JSON parsed successfully, checking for image data");
       
       // Check if the image property exists and is a valid base64 string
       if (!json.image || typeof json.image !== 'string') {

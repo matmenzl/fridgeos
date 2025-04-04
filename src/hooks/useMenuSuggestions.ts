@@ -85,19 +85,20 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   const checkSupabaseFunction = async () => {
     try {
       console.log('Überprüfe, ob die Edge-Funktion verfügbar ist');
-      const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+      
+      const response = await supabase.functions.invoke('menu-suggestions', {
         body: { action: 'ping' },
         headers: {
           'Content-Type': 'application/json'
         }
       });
       
-      if (error) {
-        console.error('Edge-Funktion nicht verfügbar:', error);
+      if (response.error) {
+        console.error('Edge-Funktion nicht verfügbar:', response.error);
         return false;
       }
       
-      console.log('Edge-Funktion ist verfügbar:', data);
+      console.log('Edge-Funktion ist verfügbar:', response.data);
       return true;
     } catch (error) {
       console.error('Supabase Edge-Funktion nicht verfügbar:', error);
@@ -108,15 +109,21 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   useEffect(() => {
     const generateSuggestions = async () => {
       if (notes.length > 0 || receiptProducts.length > 0) {
-        // Check if the Edge function is available
-        const isFunctionAvailable = await checkSupabaseFunction();
-        
-        if (isFunctionAvailable) {
-          console.log('Edge-Funktion ist verfügbar, generiere Menüvorschläge');
-          await regenerateSuggestions();
-        } else {
-          console.log('Edge-Funktion ist nicht verfügbar, verwende Fallback');
-          // We'll still try to generate suggestions, the productUtils will handle the fallback
+        try {
+          // Check if the Edge function is available
+          const isFunctionAvailable = await checkSupabaseFunction();
+          
+          if (isFunctionAvailable) {
+            console.log('Edge-Funktion ist verfügbar, generiere Menüvorschläge');
+            await regenerateSuggestions();
+          } else {
+            console.log('Edge-Funktion ist nicht verfügbar, verwende Fallback');
+            // We'll still try to generate suggestions, the productUtils will handle the fallback
+            await regenerateSuggestions();
+          }
+        } catch (error) {
+          console.error('Fehler beim Prüfen der Edge-Funktion:', error);
+          // Try regenerating suggestions anyway, the fallback should handle failures
           await regenerateSuggestions();
         }
       }

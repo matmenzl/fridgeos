@@ -37,7 +37,7 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
 
     try {
       // Call the Supabase Edge Function with proper headers
-      const { data, error } = await supabase.functions.invoke('receipt-parser', {
+      const response = await supabase.functions.invoke('receipt-parser', {
         body: { image: imageUrl },
         headers: {
           'Content-Type': 'application/json'
@@ -46,11 +46,13 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
 
       setProgress(60);
 
-      if (error) {
-        console.error('Supabase Edge Function Fehler:', error);
-        throw new Error(`Fehler bei der Verarbeitung: ${error.message}`);
+      // Enhanced error handling
+      if (response.error) {
+        console.error('Supabase Edge Function Fehler:', response.error);
+        throw new Error(`Fehler bei der Verarbeitung: ${response.error.message}`);
       }
 
+      const data = response.data;
       if (!data || !data.success) {
         console.error('API Fehler:', data?.error || 'Unbekannter Fehler');
         throw new Error(data?.error || 'Unbekannter Fehler bei der Verarbeitung');
@@ -78,7 +80,7 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
         // Log raw line items with complete details for debugging
         if (data.debug.line_items_raw && data.debug.line_items_raw.length > 0) {
           console.log('Erkannte Produktlinien mit Confidence:');
-          data.debug.line_items_raw.forEach((item, index) => {
+          data.debug.line_items_raw.forEach((item: any, index: number) => {
             const description = item.description ? 
               (typeof item.description === 'object' ? item.description.value : item.description) : 
               'Unbekannt';
@@ -115,7 +117,7 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
         });
         
         // Filter out obvious non-product lines
-        const filteredProducts = data.products.filter(product => {
+        const filteredProducts = data.products.filter((product: any) => {
           // Wenn es bereits ein String ist, behalte die ursprüngliche Filterlogik
           if (typeof product === 'string') {
             const lowerProduct = product.toLowerCase();
@@ -157,7 +159,7 @@ const MindeeProcessor: React.FC<MindeeProcessorProps> = ({
       enableFallback();
       
     } catch (error) {
-      console.error('Fehler bei der Edge Function:', error);
+      console.error('Fehler bei der Mindee Verarbeitung:', error);
       toast({
         title: "Fehler bei Cloud-Verarbeitung",
         description: "Wechsle zu lokaler Verarbeitung...",

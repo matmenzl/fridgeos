@@ -6,23 +6,66 @@ import OpenAI from "https://deno.land/x/openai@v4.16.1/mod.ts";
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
-  // IMPORTANT: Handle CORS preflight requests properly
+  // CRITICAL: Handle CORS preflight requests properly
   if (req.method === "OPTIONS") {
+    console.log("Handling OPTIONS request with CORS headers");
     return new Response(null, {
-      status: 200, // Make sure to return a 200 status
+      status: 200, // Make sure to return a 200 status for OPTIONS
       headers: corsHeaders
     });
   }
 
   try {
+    // Safely parse request body with comprehensive error handling
     let reqBody;
-    try {
-      reqBody = await req.json();
-      console.log("Request body:", JSON.stringify(reqBody));
-    } catch (e) {
-      console.error("Error parsing request body:", e);
+    const contentType = req.headers.get("content-type") || "";
+    console.log("Request content type:", contentType);
+    
+    if (!contentType.includes("application/json")) {
+      console.error("Invalid content type:", contentType);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
+        JSON.stringify({ 
+          error: `Unsupported Content-Type: ${contentType}. Expected application/json.` 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+    
+    try {
+      const bodyText = await req.text();
+      console.log("Request body length:", bodyText.length);
+      
+      if (!bodyText || bodyText.trim().length === 0) {
+        console.error("Empty request body");
+        return new Response(
+          JSON.stringify({ error: "Empty request body" }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+      
+      try {
+        reqBody = JSON.parse(bodyText);
+        console.log("Request body parsed successfully:", JSON.stringify(reqBody));
+      } catch (e) {
+        console.error("Error parsing JSON body:", e);
+        return new Response(
+          JSON.stringify({ error: `Invalid JSON in request body: ${e.message}` }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Error reading request body:", e);
+      return new Response(
+        JSON.stringify({ error: `Failed to read request body: ${e.message}` }),
         { 
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -30,12 +73,16 @@ serve(async (req) => {
       );
     }
 
-    const { products, action } = reqBody;
+    const { products, action } = reqBody || {};
+    console.log("Action:", action, "Products:", Array.isArray(products) ? products.length : typeof products);
 
     if (action === "ping") {
       return new Response(
         JSON.stringify({ status: "ok" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
       );
     }
 
@@ -48,7 +95,8 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ suggestions: fallbackSuggestions }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
           }
         );
       } else if (action === "getRecipe") {
@@ -57,7 +105,8 @@ serve(async (req) => {
             recipe: "Rezept konnte nicht generiert werden. API-Schlüssel fehlt."
           }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
           }
         );
       }
@@ -87,7 +136,8 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ suggestions }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
           }
         );
       } catch (error) {
@@ -101,7 +151,8 @@ serve(async (req) => {
             error: error.message
           }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 // Still return 200 with fallback data
           }
         );
       }
@@ -125,7 +176,8 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ recipe }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200
           }
         );
       } catch (error) {
@@ -136,7 +188,8 @@ serve(async (req) => {
             recipe: "Rezept konnte nicht generiert werden. Bitte versuche es später erneut."
           }),
           { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" }
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200 // Still return 200 with error message
           }
         );
       }

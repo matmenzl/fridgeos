@@ -27,8 +27,8 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   try {
     console.log('Rufe Edge-Funktion "menu-suggestions" mit diesen Produkten auf:', products);
     
-    // Rufe die Edge-Funktion auf
-    const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+    // Rufe die Edge-Funktion auf mit verbessertem Error-Handling
+    const response = await supabase.functions.invoke('menu-suggestions', {
       body: { 
         products, 
         action: 'getMenuSuggestions' 
@@ -38,14 +38,16 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
       }
     });
     
-    if (error) {
-      console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
-      throw error;
+    // Verbesserte Fehlerbehandlung
+    if (response.error) {
+      console.error('Fehler bei der Generierung von Menüvorschlägen:', response.error);
+      throw response.error;
     }
     
-    if (data?.suggestions && Array.isArray(data.suggestions)) {
-      console.log('Erhaltene Vorschläge:', data.suggestions);
-      return data.suggestions;
+    // Wenn die Antwort ein data Objekt mit Vorschlägen enthält
+    if (response.data?.suggestions && Array.isArray(response.data.suggestions)) {
+      console.log('Erhaltene Vorschläge:', response.data.suggestions);
+      return response.data.suggestions;
     }
     
     console.log('Keine gültigen Vorschläge erhalten, verwende Fallback');
@@ -64,8 +66,8 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
   try {
     console.log('Rufe Edge-Funktion "menu-suggestions" für Rezept auf:', suggestion);
     
-    // Rufe die Edge-Funktion auf
-    const { data, error } = await supabase.functions.invoke('menu-suggestions', {
+    // Rufe die Edge-Funktion auf mit verbessertem Error-Handling
+    const response = await supabase.functions.invoke('menu-suggestions', {
       body: { 
         products: suggestion, 
         action: 'getRecipe' 
@@ -75,14 +77,16 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       }
     });
     
-    if (error) {
-      console.error('Fehler bei der Generierung des Rezepts:', error);
-      throw error;
+    // Verbesserte Fehlerbehandlung
+    if (response.error) {
+      console.error('Fehler bei der Generierung des Rezepts:', response.error);
+      throw response.error;
     }
     
-    if (data?.recipe && typeof data.recipe === 'string') {
-      console.log('Rezept erhalten mit Länge:', data.recipe.length);
-      return data.recipe;
+    // Wenn die Antwort ein data Objekt mit einem Rezept enthält
+    if (response.data?.recipe && typeof response.data.recipe === 'string') {
+      console.log('Rezept erhalten mit Länge:', response.data.recipe.length);
+      return response.data.recipe;
     }
     
     throw new Error('Rezept konnte nicht generiert werden');
