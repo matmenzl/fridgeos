@@ -1,20 +1,17 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import { Camera } from "lucide-react";
 import { saveReceiptProduct } from '../../services/noteStorage';
-import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
-import ResultsList from './ResultsList';
-import LoadingState from './LoadingState';
+import CaptureView from './CaptureView';
+import ReceiptDialog from './ReceiptDialog';
+import SaveButton from './SaveButton';
 import { cleanProductName } from '../../utils/productNameCleaner';
 
 interface ReceiptScannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProductsUpdated?: () => void; // Callback prop for product updates
+  onProductsUpdated?: () => void;
 }
 
 const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
@@ -110,7 +107,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!open) {
       setImageUrl(null);
       setResults([]);
@@ -119,67 +116,40 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
     }
   }, [open]);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Quittung scannen</DialogTitle>
-          <DialogDescription>
-            Fotografiere eine Quittung oder lade ein Bild hoch, um Produkte zu erfassen.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="flex flex-col gap-4">
-          {!imageUrl ? (
-            <CameraCapture onCapture={handleCapture} />
-          ) : (
-            <div className="space-y-4">
-              {results.length === 0 && scanning ? (
-                <LoadingState />
-              ) : (
-                <>
-                  <ResultsList 
-                    results={results} 
-                    selectedItems={selectedItems} 
-                    onToggleSelection={toggleItemSelection} 
-                    onRemoveItem={handleRemoveItem}
-                  />
-                  
-                  <div className="flex gap-2 justify-center">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleRetake}
-                      className="flex items-center gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Neues Foto
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {imageUrl && results.length > 0 && !scanning && (
-          <DialogFooter>
-            <Button 
-              onClick={saveSelectedItems}
-              disabled={selectedItems.length === 0}
-            >
-              {selectedItems.length} Produkte speichern
-            </Button>
-          </DialogFooter>
-        )}
+  // Prepare the footer content for the dialog
+  const footerContent = imageUrl && results.length > 0 && !scanning ? (
+    <SaveButton 
+      selectedItemsCount={selectedItems.length} 
+      onSave={saveSelectedItems} 
+    />
+  ) : null;
 
-        {imageUrl && <OcrProcessor
+  return (
+    <ReceiptDialog 
+      open={open} 
+      onOpenChange={onOpenChange}
+      footerContent={footerContent}
+    >
+      <CaptureView 
+        imageUrl={imageUrl}
+        scanning={scanning}
+        results={results}
+        selectedItems={selectedItems}
+        onCapture={handleCapture}
+        onToggleSelection={toggleItemSelection}
+        onRemoveItem={handleRemoveItem}
+        onRetake={handleRetake}
+      />
+
+      {imageUrl && (
+        <OcrProcessor
           imageUrl={imageUrl}
           onProcessingStart={handleProcessingStart}
           onProcessingComplete={handleProcessingComplete}
           onError={handleProcessingError}
-        />}
-      </DialogContent>
-    </Dialog>
+        />
+      )}
+    </ReceiptDialog>
   );
 };
 
