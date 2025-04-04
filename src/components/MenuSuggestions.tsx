@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shuffle, Image as ImageIcon, Refrigerator, Wifi, AlertCircle, LoaderCircle } from "lucide-react";
-import { extractProductNames, generateMenuSuggestions, getOpenAiApiKey, saveOpenAiApiKey } from '../utils/productUtils';
+import { Shuffle, Image as ImageIcon, Refrigerator, Wifi, AlertCircle, LoaderCircle, Book } from "lucide-react";
+import { extractProductNames, generateMenuSuggestions, getOpenAiApiKey, saveOpenAiApiKey, getRecipeForSuggestion } from '../utils/productUtils';
 import { Note, ProductNote } from '../services/noteStorage';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,10 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
   const [isLoading, setIsLoading] = useState(false);
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
   const [apiKey, setApiKey] = useState(getOpenAiApiKey() || '');
+  const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
+  const [recipe, setRecipe] = useState<string>('');
+  const [isLoadingRecipe, setIsLoadingRecipe] = useState(false);
+  const [recipeDialogOpen, setRecipeDialogOpen] = useState(false);
   const { toast } = useToast();
   
   const regenerateSuggestions = async () => {
@@ -94,6 +98,28 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
         description: "Bitte gib einen gültigen API-Schlüssel ein.",
         variant: "destructive",
       });
+    }
+  };
+  
+  const handleGetRecipe = async (suggestion: string) => {
+    // Check if we have an API key
+    if (!getOpenAiApiKey()) {
+      setApiKeyDialogOpen(true);
+      return;
+    }
+    
+    setSelectedSuggestion(suggestion);
+    setIsLoadingRecipe(true);
+    setRecipeDialogOpen(true);
+    
+    try {
+      const recipeText = await getRecipeForSuggestion(suggestion);
+      setRecipe(recipeText);
+    } catch (error) {
+      console.error('Fehler beim Laden des Rezepts:', error);
+      setRecipe('Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');
+    } finally {
+      setIsLoadingRecipe(false);
     }
   };
   
@@ -168,6 +194,17 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
               </div>
               <CardContent className="p-4">
                 <p className="text-center font-medium">{suggestion}</p>
+                <div className="flex justify-center mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleGetRecipe(suggestion)}
+                    className="flex items-center gap-1"
+                  >
+                    <Book size={16} />
+                    <span>Rezept anzeigen</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -190,6 +227,7 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
         </div>
       )}
       
+      {/* API Key Dialog */}
       <Dialog open={apiKeyDialogOpen} onOpenChange={setApiKeyDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -216,6 +254,33 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
           <DialogFooter>
             <Button variant="outline" onClick={() => setApiKeyDialogOpen(false)}>Abbrechen</Button>
             <Button onClick={saveApiKey}>Speichern</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Recipe Dialog */}
+      <Dialog open={recipeDialogOpen} onOpenChange={setRecipeDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedSuggestion}</DialogTitle>
+            <DialogDescription>
+              Rezept für das ausgewählte Gericht
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {isLoadingRecipe ? (
+              <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                <LoaderCircle size={32} className="animate-spin text-primary" />
+                <p className="text-muted-foreground">Rezept wird geladen...</p>
+              </div>
+            ) : (
+              <div className="recipe-content whitespace-pre-line">
+                {recipe}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecipeDialogOpen(false)}>Schließen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
