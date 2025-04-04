@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Check, Trash } from "lucide-react";
 import { Button } from '@/components/ui/button';
@@ -31,17 +30,17 @@ const ResultsList: React.FC<ResultsListProps> = ({
       <p className="text-sm font-medium">Erkannte Produkte:</p>
       <div className="max-h-64 overflow-y-auto bg-muted rounded-md p-2">
         {results.map((item, index) => {
-          // Extrahiere nur den Beschreibungswert, falls es sich um ein JSON-Objekt handelt
+          // Extract just the description value if it's a JSON object
           let displayText = item;
           
           try {
-            // Versuche zu prüfen, ob es sich um ein JSON-Objekt handelt
+            // Check if it's a JSON object
             if (item.includes('"description"') && (item.startsWith('{') || item.startsWith('Zeile : {'))) {
-              // Entferne "Zeile : " wenn vorhanden
+              // Remove "Zeile : " if present
               const jsonText = item.startsWith('Zeile : ') ? item.substring(8) : item;
               const parsed = JSON.parse(jsonText);
               
-              // Extrahiere den description-Wert, der entweder direkt als String oder als Objekt mit value-Eigenschaft vorliegen kann
+              // Extract the description value, which can be either a direct string or an object with a value property
               if (parsed.description) {
                 if (typeof parsed.description === 'object' && parsed.description.value) {
                   displayText = parsed.description.value;
@@ -51,8 +50,8 @@ const ResultsList: React.FC<ResultsListProps> = ({
               }
             }
           } catch (error) {
-            // Bei Parsing-Fehlern den Originaltext behalten
-            console.log('Parsing-Fehler bei Item:', item, error);
+            // Keep the original text if there's a parsing error
+            console.log('Parsing error for item:', item, error);
           }
           
           return (
