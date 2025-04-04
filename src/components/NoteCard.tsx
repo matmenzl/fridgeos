@@ -10,15 +10,15 @@ import { de } from 'date-fns/locale';
 
 interface NoteCardProps {
   note: Note;
-  onDelete: () => void;
+  onDelete: (noteId: string) => void;  // Updated to pass the noteId
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
   const handleDelete = () => {
     console.log("Deleting product:", note.id);
     deleteNote(note.id);
-    // Call the onDelete callback to notify parent component
-    onDelete();
+    // Call the onDelete callback with the specific noteId
+    onDelete(note.id);
   };
 
   // Check if the note is a multi-line formatted product note

@@ -83,9 +83,16 @@ const Index = () => {
     loadReceiptProducts();
   };
 
-  const handleNoteDelete = () => {
-    console.log("Note deleted, refreshing list");
-    loadNotes(); // Refresh the notes list after a note is deleted
+  const handleNoteDelete = (noteId: string) => {
+    console.log("Note deleted, refreshing list. Note ID:", noteId);
+    
+    // Update the state directly to remove just the deleted note
+    setNotes(prevNotes => prevNotes.filter(note => note.id !== noteId));
+    
+    toast({
+      title: "Produkt gelöscht",
+      description: "Das Produkt wurde erfolgreich gelöscht.",
+    });
   };
 
   return (
