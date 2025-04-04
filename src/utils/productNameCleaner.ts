@@ -25,10 +25,13 @@ export const cleanProductName = (name: string): string => {
   // Step 6: Remove quantity in brackets
   cleaned = cleaned.replace(/\[\d+[.,]?\d*\s*(?:g|gr|kg|l|ml|stk|stück|pkg)\]/gi, '');
   
-  // Step 7: Clean leftover artifacts
+  // Step 7: Enhanced cleaning of quantities without units (like "250" or "250 ")
+  cleaned = cleaned.replace(/\b\d+[.,]?\d*\s*/g, '');
+  
+  // Step 8: Clean leftover artifacts like colons, commas, etc.
   cleaned = cleaned.replace(/^\s*[:,-./]\s*/, '');
   
-  // Step 8: Clean up multiple spaces and trim
+  // Step 9: Clean up multiple spaces and trim
   cleaned = cleaned.replace(/\s+/g, ' ').trim();
   
   return cleaned;
