@@ -36,7 +36,7 @@ export const saveReceiptProduct = async (productName: string): Promise<ProductNo
       const products = getAllReceiptProductsFromLocalStorage();
       products.push(newProduct);
       localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(products));
-    } else {
+    } else if (data) {
       // Die von Supabase generierte UUID verwenden
       newProduct.id = data.id;
     }
@@ -63,6 +63,10 @@ export const getAllReceiptProducts = async (): Promise<ProductNote[]> => {
     if (error) {
       console.error('Fehler beim Abrufen der Produkte aus Supabase:', error);
       // Fallback: Aus localStorage abrufen
+      return getAllReceiptProductsFromLocalStorage();
+    }
+    
+    if (!data) {
       return getAllReceiptProductsFromLocalStorage();
     }
     
@@ -140,6 +144,10 @@ export const updateReceiptProduct = async (id: string, productName: string): Pro
       localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(products));
       
       return updatedProduct;
+    }
+    
+    if (!data) {
+      return null;
     }
     
     // Das aktualisierte Produkt zurückgeben

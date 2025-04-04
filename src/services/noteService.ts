@@ -28,7 +28,7 @@ export const saveNote = async (text: string): Promise<Note> => {
       const notes = getAllNotesFromLocalStorage();
       notes.push(newNote);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-    } else {
+    } else if (data) {
       // Die von Supabase generierte UUID verwenden
       newNote.id = data.id;
     }
@@ -60,6 +60,10 @@ export const getAllNotes = async (): Promise<Note[]> => {
     if (error) {
       console.error('Fehler beim Abrufen der Notizen aus Supabase:', error);
       // Fallback: Aus localStorage abrufen
+      return getAllNotesFromLocalStorage();
+    }
+    
+    if (!data) {
       return getAllNotesFromLocalStorage();
     }
     
@@ -131,6 +135,10 @@ export const updateNote = async (id: string, newText: string): Promise<Note | nu
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
       
       return updatedNote;
+    }
+    
+    if (!data) {
+      return null;
     }
     
     // Die aktualisierte Notiz zurückgeben

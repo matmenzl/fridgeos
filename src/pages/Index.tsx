@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Note, ProductNote, deleteReceiptProduct, getAllNotes, getAllReceiptProducts, saveNote, migrateNotesToSupabase, migrateReceiptProductsToSupabase } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +8,6 @@ import PageHeader from '../components/PageHeader';
 import ActionButtons from '../components/ActionButtons';
 import ProductList from '../components/ProductList';
 import { Button } from "@/components/ui/button";
-import { Database } from "../integrations/supabase/client";
 
 const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
