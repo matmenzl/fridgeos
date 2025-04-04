@@ -70,11 +70,14 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
 
   const saveSelectedItems = async () => {
     if (selectedItems.length > 0) {
-      // Jedes ausgewählte Produkt einzeln speichern - make sure they're cleaned
-      selectedItems.forEach(item => {
+      // Save all selected products
+      const savePromises = selectedItems.map(item => {
         const cleanedItem = cleanProductName(item);
-        saveReceiptProduct(cleanedItem);
+        return saveReceiptProduct(cleanedItem);
       });
+      
+      // Wait for all products to be saved
+      await Promise.all(savePromises);
       
       toast({
         title: "Produkte gespeichert",
@@ -86,7 +89,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         onProductsUpdated();
       }
       
-      // Dialog schließen und Status zurücksetzen
+      // Reset state and close dialog
       onOpenChange(false);
       setImageUrl(null);
       setResults([]);
