@@ -24,6 +24,69 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
     }
   }, [imageUrl]);
 
+  // Optimize text extraction for German receipts
+  const filterProductLines = (text: string): string[] => {
+    // Split text into lines and clean them
+    const lines = text.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 2);
+    
+    console.log('Raw OCR lines:', lines);
+    
+    // German receipt-specific filtering
+    const productLines = lines.filter(line => {
+      const lowerLine = line.toLowerCase();
+      
+      // Remove common German receipt headers/footers/metadata
+      const isMetadata = 
+        lowerLine.includes('gesamt') ||
+        lowerLine.includes('summe') ||
+        lowerLine.includes('mwst') ||
+        lowerLine.includes('ust') ||
+        lowerLine.includes('datum') ||
+        lowerLine.includes('uhrzeit') ||
+        lowerLine.includes('rechnung') ||
+        lowerLine.includes('kassenbon') ||
+        lowerLine.includes('beleg') ||
+        lowerLine.includes('quittung') ||
+        lowerLine.includes('vielen dank') ||
+        lowerLine.includes('auf wiedersehen') ||
+        lowerLine.includes('zwischensumme') ||
+        lowerLine.includes('kasse') ||
+        lowerLine.includes('filiale') ||
+        lowerLine.includes('steuernr') ||
+        lowerLine.includes('steuer-nr') ||
+        lowerLine.includes('kundennr') ||
+        lowerLine.includes('kunden-nr') ||
+        lowerLine.includes('tel:') ||
+        lowerLine.includes('tel.') ||
+        lowerLine.includes('zahlen sie') ||
+        lowerLine.includes('zahlung') ||
+        lowerLine.includes('betrag');
+      
+      // Filter out price-only lines (common in German receipts)
+      const isPriceLine = /^\s*\d+[.,]\d{2}\s*€?\s*$/.test(line);
+      
+      // Filter out numbered lines that have just a number and no product name
+      const isNumberOnly = /^\s*\d+\s*$/.test(line);
+      
+      // Potential product lines often have a price
+      const hasPrice = /\d+[.,]\d{2}/.test(line);
+      
+      // Product lines usually have a mix of letters and numbers
+      const hasLettersAndDigits = /[A-Za-z].*\d|\d.*[A-Za-z]/.test(line);
+      
+      // Typical length of product descriptions
+      const hasReasonableLength = line.length > 3 && line.length < 60;
+
+      return !isMetadata && !isPriceLine && !isNumberOnly && hasReasonableLength && 
+             (hasLettersAndDigits || !hasPrice);
+    });
+    
+    console.log('Filtered product lines:', productLines);
+    return productLines;
+  };
+
   const processImage = async (imageUrl: string) => {
     onProcessingStart();
     
@@ -33,7 +96,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
         description: "Bitte warte, während die Quittung gescannt wird...",
       });
 
-      // Initialize Tesseract worker with proper options
+      // Initialize Tesseract worker with optimized options for German receipts
       const worker = await createWorker({
         logger: m => console.log(m),
         langPath: 'https://tessdata.projectnaptha.com/4.0.0',
@@ -41,30 +104,22 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       
       // Load German language data
       await worker.loadLanguage('deu');
+      
+      // Configure Tesseract for optimized German receipt scanning
       await worker.initialize('deu');
+      
+      // Set Tesseract parameters for better receipt recognition
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
+        preserve_interword_spaces: '1',
+        tessedit_pageseg_mode: '6', // Assume a single uniform block of text
+      });
       
       const result = await worker.recognize(imageUrl);
       console.log('OCR Result:', result);
       
-      // Process the text to extract product information
-      const lines = result.data.text.split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 2); // Filter out very short lines
-      
-      // Simple filtering to find potential product lines
-      const productLines = lines.filter(line => {
-        // Filter out likely headers, totals, etc.
-        const lowerLine = line.toLowerCase();
-        return !lowerLine.includes('gesamt') &&
-               !lowerLine.includes('summe') &&
-               !lowerLine.includes('mwst') &&
-               !lowerLine.includes('datum') &&
-               !lowerLine.includes('uhrzeit') &&
-               !lowerLine.includes('rechnung') &&
-               !lowerLine.includes('kassenbon') &&
-               !lowerLine.includes('vielen dank') &&
-               !lowerLine.includes('eur');
-      });
+      // Process the text to extract product information with improved filtering
+      const productLines = filterProductLines(result.data.text);
       
       await worker.terminate();
       
