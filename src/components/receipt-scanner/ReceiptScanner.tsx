@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Trash } from "lucide-react";
-import { saveReceiptProduct } from '../../services/noteStorage';
+import { saveReceiptProduct, getAllReceiptProducts } from '../../services/noteStorage';
 import CameraCapture from './CameraCapture';
 import OcrProcessor from './OcrProcessor';
 import ResultsList from './ResultsList';
@@ -13,11 +13,13 @@ import LoadingState from './LoadingState';
 interface ReceiptScannerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProductsUpdated?: () => void; // New callback prop for product updates
 }
 
 const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
   open,
-  onOpenChange
+  onOpenChange,
+  onProductsUpdated
 }) => {
   const { toast } = useToast();
   const [scanning, setScanning] = useState(false);
@@ -69,6 +71,11 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({
         title: "Produkte gespeichert",
         description: `${selectedItems.length} Produkte wurden gespeichert.`,
       });
+      
+      // Notify parent component that products have been updated
+      if (onProductsUpdated) {
+        onProductsUpdated();
+      }
       
       // Dialog schließen und Status zurücksetzen
       onOpenChange(false);

@@ -73,6 +73,12 @@ const Index = () => {
     });
   };
 
+  const updateProductLists = () => {
+    // This function refreshes both notes and receipt products
+    loadNotes();
+    loadReceiptProducts();
+  };
+
   return (
     <div className="min-h-screen">
       <header className="fridgie-header-gradient w-full py-8 mb-8 text-center">
@@ -162,6 +168,7 @@ const Index = () => {
         <ReceiptScanner
           open={scannerDialogOpen}
           onOpenChange={setScannerDialogOpen}
+          onProductsUpdated={updateProductLists}
         />
       </div>
     </div>
