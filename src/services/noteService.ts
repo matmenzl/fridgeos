@@ -1,7 +1,8 @@
 
 import { STORAGE_KEY } from './databaseUtils';
-import { BaseDataService, BaseItem } from './baseDataService';
+import { BaseDataService } from './baseDataService';
 import { Note } from './noteStorage';
+import { BaseItem } from './types/dataServiceTypes';
 
 // Define the database note type
 interface DbNote {

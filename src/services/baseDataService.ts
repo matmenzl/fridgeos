@@ -1,20 +1,13 @@
 
-import { supabase } from '../integrations/supabase/client';
-import { Database } from '../integrations/supabase/types';
-
-export interface BaseItem {
-  id: string;
-  timestamp: number;
-}
-
-// Define a type-safe Supabase table name
-export type SupabaseTable = keyof Database['public']['Tables'];
+import { BaseItem, SupabaseTable, DataMappers } from './types/dataServiceTypes';
+import { LocalStorageService } from './storage/localStorageService';
+import { SupabaseService } from './storage/supabaseService';
 
 export class BaseDataService<T extends BaseItem, DbItem> {
   private tableName: SupabaseTable;
-  private localStorageKey: string;
-  private mapFromDb: (dbItem: any) => T;
-  private mapToDb: (item: T) => Omit<DbItem, 'id'>;
+  private localStorageService: LocalStorageService<T>;
+  private supabaseService: SupabaseService<T, DbItem>;
+  private mappers: DataMappers<T, DbItem>;
 
   constructor(
     tableName: SupabaseTable, 
@@ -23,39 +16,39 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     mapToDb: (item: T) => Omit<DbItem, 'id'>
   ) {
     this.tableName = tableName;
-    this.localStorageKey = localStorageKey;
-    this.mapFromDb = mapFromDb;
-    this.mapToDb = mapToDb;
+    this.localStorageService = new LocalStorageService<T>(localStorageKey);
+    this.supabaseService = new SupabaseService<T, DbItem>(tableName);
+    this.mappers = { mapFromDb, mapToDb };
   }
 
+  /**
+   * Get items from localStorage (protected method for internal use)
+   */
   protected getFromLocalStorage(): T[] {
-    const itemsJson = localStorage.getItem(this.localStorageKey);
-    return itemsJson ? JSON.parse(itemsJson) : [];
+    return this.localStorageService.getItems();
   }
 
+  /**
+   * Get all items, with fallback to localStorage if Supabase fails
+   */
   async getAll(): Promise<T[]> {
     try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('*')
-        .order('timestamp', { ascending: false });
-      
-      if (error) {
-        console.error(`Error fetching data from ${this.tableName}:`, error);
-        return this.getFromLocalStorage();
-      }
+      const data = await this.supabaseService.getAll();
       
       if (!data) {
         return this.getFromLocalStorage();
       }
       
-      return data.map(this.mapFromDb);
+      return data.map(this.mappers.mapFromDb);
     } catch (error) {
       console.error(`Error fetching data from ${this.tableName}:`, error);
       return this.getFromLocalStorage();
     }
   }
 
+  /**
+   * Create a new item
+   */
   async create(itemData: Omit<T, 'id'>): Promise<T> {
     // Create a temporary item with a unique ID
     const uniqueId = Date.now().toString() + '-' + Math.random().toString(36).substring(2, 10);
@@ -63,20 +56,14 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     
     try {
       // Map to database format and insert into Supabase
-      const dataForDb = this.mapToDb(newItem);
+      const dataForDb = this.mappers.mapToDb(newItem);
       
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .insert([dataForDb as any])
-        .select('id')
-        .single();
+      const { data, error } = await this.supabaseService.create(dataForDb);
       
       if (error) {
         console.error(`Error creating item in ${this.tableName}:`, error);
         // Fallback: Save to localStorage
-        const items = this.getFromLocalStorage();
-        items.push(newItem);
-        localStorage.setItem(this.localStorageKey, JSON.stringify(items));
+        this.localStorageService.addItem(newItem);
       } else if (data) {
         // Use the Supabase-generated UUID
         newItem.id = data.id;
@@ -84,25 +71,21 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     } catch (error) {
       console.error(`Error creating item in ${this.tableName}:`, error);
       // Fallback: Save to localStorage
-      const items = this.getFromLocalStorage();
-      items.push(newItem);
-      localStorage.setItem(this.localStorageKey, JSON.stringify(items));
+      this.localStorageService.addItem(newItem);
     }
     
     return newItem;
   }
 
+  /**
+   * Update an existing item
+   */
   async update(id: string, updateData: Partial<Omit<T, 'id'>>): Promise<T | null> {
     try {
       // Create the update object with timestamp
       const updateObj = { ...updateData, timestamp: Date.now() };
       
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .update(updateObj as any)
-        .eq('id', id)
-        .select()
-        .single();
+      const { data, error } = await this.supabaseService.update(id, updateObj);
       
       if (error) {
         console.error(`Error updating item in ${this.tableName}:`, error);
@@ -121,17 +104,14 @@ export class BaseDataService<T extends BaseItem, DbItem> {
           timestamp: Date.now()
         } as T;
         
-        items[itemIndex] = updatedItem;
-        localStorage.setItem(this.localStorageKey, JSON.stringify(items));
-        
-        return updatedItem;
+        return this.localStorageService.updateItem(id, updatedItem);
       }
       
       if (!data) {
         return null;
       }
       
-      return this.mapFromDb(data);
+      return this.mappers.mapFromDb(data);
     } catch (error) {
       console.error(`Error updating item in ${this.tableName}:`, error);
       // Fallback: Update in localStorage
@@ -149,40 +129,36 @@ export class BaseDataService<T extends BaseItem, DbItem> {
         timestamp: Date.now()
       } as T;
       
-      items[itemIndex] = updatedItem;
-      localStorage.setItem(this.localStorageKey, JSON.stringify(items));
-      
-      return updatedItem;
+      return this.localStorageService.updateItem(id, updatedItem);
     }
   }
 
+  /**
+   * Delete an item
+   */
   async delete(id: string): Promise<void> {
     console.log(`Attempting to delete item with ID: ${id} from ${this.tableName}`);
     
     try {
-      const { error } = await supabase
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
+      const { error } = await this.supabaseService.delete(id);
       
       if (error) {
         console.error(`Error deleting item from ${this.tableName}:`, error);
         // Fallback: Delete from localStorage
-        const items = this.getFromLocalStorage();
-        const updatedItems = items.filter(item => item.id !== id);
-        localStorage.setItem(this.localStorageKey, JSON.stringify(updatedItems));
+        this.localStorageService.removeItem(id);
       } else {
         console.log(`Item with ID ${id} successfully deleted from ${this.tableName}.`);
       }
     } catch (error) {
       console.error(`Error deleting item from ${this.tableName}:`, error);
       // Fallback: Delete from localStorage
-      const items = this.getFromLocalStorage();
-      const updatedItems = items.filter(item => item.id !== id);
-      localStorage.setItem(this.localStorageKey, JSON.stringify(updatedItems));
+      this.localStorageService.removeItem(id);
     }
   }
 
+  /**
+   * Migrate items to Supabase
+   */
   async migrateToSupabase(items: T[]): Promise<boolean> {
     if (items.length === 0) {
       console.log(`No local items to migrate to ${this.tableName}.`);
@@ -191,12 +167,9 @@ export class BaseDataService<T extends BaseItem, DbItem> {
     
     try {
       // Prepare items for Supabase by mapping each one
-      const dbItems = items.map(item => this.mapToDb(item));
+      const dbItems = items.map(item => this.mappers.mapToDb(item));
       
-      // Insert items in Supabase
-      const { error } = await supabase
-        .from(this.tableName)
-        .insert(dbItems as any[]);
+      const { error } = await this.supabaseService.migrateItems(dbItems);
       
       if (error) {
         console.error(`Error migrating items to ${this.tableName}:`, error);

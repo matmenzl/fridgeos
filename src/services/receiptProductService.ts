@@ -2,6 +2,7 @@
 import { RECEIPT_PRODUCTS_KEY } from './databaseUtils';
 import { BaseDataService } from './baseDataService';
 import { ProductNote } from './noteStorage';
+import { BaseItem } from './types/dataServiceTypes';
 
 // Define the database product type
 interface DbProduct {
