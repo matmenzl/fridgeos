@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 import { useToast } from "@/hooks/use-toast";
 
 interface OcrProcessorProps {
@@ -112,7 +112,7 @@ const OcrProcessor: React.FC<OcrProcessorProps> = ({
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÜäöüß0123456789.,€%:;+-/ ',
         preserve_interword_spaces: '1',
-        tessedit_pageseg_mode: 6, // Assume a single uniform block of text - using number instead of string
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK, // Using the proper enum value for a single uniform block of text
       });
       
       const result = await worker.recognize(imageUrl);
