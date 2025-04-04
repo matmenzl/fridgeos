@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +44,7 @@ const Index = () => {
       loadNotes();
       toast({
         title: "Produkt gespeichert",
-        description: `"${productName}" wurde erfolgreich gespeichert.",
+        description: `"${productName}" wurde erfolgreich gespeichert.`,
       });
     } else {
       console.error("No product name found in:", data);

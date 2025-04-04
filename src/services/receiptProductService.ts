@@ -25,13 +25,19 @@ export const getAllReceiptProducts = (): ProductNote[] => {
 export const deleteReceiptProduct = (id: string): void => {
   const products = getAllReceiptProducts();
   console.log(`Before deletion: ${products.length} products`);
+  console.log(`Product IDs before deletion:`, products.map(p => p.id));
+  console.log(`Trying to delete product with ID: ${id}`);
   
-  // The bug is here. We need to make sure we're correctly filtering by ID
-  // Use strict equality comparison to ensure correct ID matching
-  const updatedProducts = products.filter(product => product.id !== id);
+  // Make sure we're correctly filtering by ID with strict equality
+  const updatedProducts = products.filter(product => {
+    // Add detailed logging for each product comparison
+    const keep = product.id !== id;
+    console.log(`Product ${product.id} (${typeof product.id}) !== ${id} (${typeof id})? ${keep}`);
+    return keep;
+  });
   
   console.log(`After deletion: ${updatedProducts.length} products`);
-  console.log(`Deleted product ID: ${id}`);
+  console.log(`Product IDs after deletion:`, updatedProducts.map(p => p.id));
   
   // Save the filtered products back to localStorage
   localStorage.setItem(RECEIPT_PRODUCTS_KEY, JSON.stringify(updatedProducts));
