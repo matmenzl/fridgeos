@@ -12,33 +12,40 @@ export function processImageFromRequest(req: Request): {
   let originalImageFormat = "jpeg"; // Default format
 
   if (contentType.includes("application/json")) {
-    const json = JSON.parse(req.body as string);
-    
-    // If the image is sent as a base64 string
-    if (json.image && json.image.startsWith("data:image")) {
-      // Determine format
-      if (json.image.includes("data:image/png")) {
-        originalImageFormat = "png";
-      } else if (json.image.includes("data:image/jpeg") || json.image.includes("data:image/jpg")) {
-        originalImageFormat = "jpeg";
+    try {
+      // Safely handle the request body
+      const bodyText = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      const json = JSON.parse(bodyText);
+      
+      // If the image is sent as a base64 string
+      if (json.image && typeof json.image === 'string' && json.image.startsWith("data:image")) {
+        // Determine format
+        if (json.image.includes("data:image/png")) {
+          originalImageFormat = "png";
+        } else if (json.image.includes("data:image/jpeg") || json.image.includes("data:image/jpg")) {
+          originalImageFormat = "jpeg";
+        }
+        
+        // Extract base64 data
+        const base64Match = json.image.match(/^data:image\/\w+;base64,(.+)$/);
+        if (!base64Match) {
+          throw new Error("Invalid image format");
+        }
+        
+        const base64Data = base64Match[1];
+        // Convert base64 to binary data
+        fileData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        console.log(`Image type detected: ${originalImageFormat}, Size: ${fileData.length} Bytes`);
+      } else {
+        throw new Error("Image not in correct format");
       }
-      
-      // Extract base64 data
-      const base64Match = json.image.match(/^data:image\/\w+;base64,(.+)$/);
-      if (!base64Match) {
-        throw new Error("Invalid image format");
-      }
-      
-      const base64Data = base64Match[1];
-      // Convert base64 to binary data
-      fileData = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      
-      console.log(`Image type detected: ${originalImageFormat}, Size: ${fileData.length} Bytes`);
-    } else {
-      throw new Error("Image not in correct format");
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      throw new Error(`Failed to parse request body: ${error.message}`);
     }
   } else {
-    throw new Error("Unsupported Content-Type");
+    throw new Error(`Unsupported Content-Type: ${contentType}`);
   }
 
   // Create new FormData
