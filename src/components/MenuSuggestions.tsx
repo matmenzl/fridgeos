@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shuffle, Image as ImageIcon } from "lucide-react";
 import { extractProductNames, generateMenuSuggestions } from '../utils/productUtils';
-import { Note } from '../services/noteStorage';
+import { Note, ProductNote } from '../services/noteStorage';
 
 interface MenuSuggestionsProps {
   notes: Note[];
+  receiptProducts?: ProductNote[];
 }
 
 // Array of food images from Unsplash (public image database)
@@ -20,13 +21,22 @@ const foodImages = [
   "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=500",
 ];
 
-const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes }) => {
+const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProducts = [] }) => {
   const [menuSuggestions, setMenuSuggestions] = useState<string[]>([]);
   const [suggestionImages, setSuggestionImages] = useState<string[]>([]);
   
   const regenerateSuggestions = () => {
-    const products = extractProductNames(notes);
-    const newSuggestions = generateMenuSuggestions(products);
+    // Extract products from notes
+    const notesProducts = extractProductNames(notes);
+    
+    // Extract products from receipt products
+    const receiptProductNames = receiptProducts.map(product => product.productName);
+    
+    // Combine both product lists
+    const allProducts = [...notesProducts, ...receiptProductNames];
+    
+    // Generate suggestions based on combined products
+    const newSuggestions = generateMenuSuggestions(allProducts);
     setMenuSuggestions(newSuggestions);
     
     // Assign random images from our collection to each suggestion
@@ -39,9 +49,12 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes }) => {
   
   useEffect(() => {
     regenerateSuggestions();
-  }, [notes]);
+  }, [notes, receiptProducts]);
   
-  if (notes.length === 0) {
+  // Only show menu suggestions if we have products (either from notes or receipt products)
+  const hasProducts = notes.length > 0 || receiptProducts.length > 0;
+  
+  if (!hasProducts) {
     return null;
   }
   

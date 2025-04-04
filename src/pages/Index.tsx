@@ -143,7 +143,8 @@ const Index = () => {
         )}
       </div>
       
-      <MenuSuggestions notes={notes} />
+      {/* Pass both notes and receiptProducts to MenuSuggestions */}
+      <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
       <ProductCaptureDialog 
         open={productDialogOpen}
