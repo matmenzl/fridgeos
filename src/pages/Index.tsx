@@ -50,7 +50,7 @@ const Index = () => {
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Fridgie</h1>
-        <p className="text-muted-foreground">Nimm Sprachnotizen auf und erfasse Produkte</p>
+        <p className="text-muted-foreground">Food-Checkin- und Checkout für möglichst wenig Foodwaste in deinem Zuhause.</p>
       </header>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
