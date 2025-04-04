@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -25,12 +24,14 @@ const Index = () => {
   const loadNotes = () => {
     console.log("Loading notes...");
     const savedNotes = getAllNotes();
+    console.log("Loaded notes count:", savedNotes.length);
     setNotes(savedNotes);
   };
 
   const loadReceiptProducts = () => {
     console.log("Loading receipt products...");
     const savedProducts = getAllReceiptProducts();
+    console.log("Loaded receipt products count:", savedProducts.length);
     setReceiptProducts(savedProducts);
   };
 
@@ -85,14 +86,22 @@ const Index = () => {
   };
 
   const handleNoteDelete = (noteId: string) => {
-    console.log("Note deleted, refreshing list. Note ID:", noteId);
+    console.log("Index - Note deleted, ID:", noteId);
     
-    // Update the state directly to remove just the deleted note
-    setNotes(prevNotes => {
-      console.log("Previous notes:", prevNotes.length);
-      const filtered = prevNotes.filter(note => note.id !== noteId);
-      console.log("Filtered notes:", filtered.length);
-      return filtered;
+    // Make a copy of the current notes and log before and after filtering
+    const notesBefore = [...notes];
+    console.log("Notes before filtering:", notesBefore.map(n => n.id));
+    
+    // Update the notes state by filtering out only the deleted note
+    setNotes(currentNotes => {
+      const filteredNotes = currentNotes.filter(note => {
+        const keep = note.id !== noteId;
+        console.log(`Note ${note.id} keep? ${keep} (comparing with ${noteId})`);
+        return keep;
+      });
+      
+      console.log("Notes after filtering:", filteredNotes.map(n => n.id));
+      return filteredNotes;
     });
     
     toast({

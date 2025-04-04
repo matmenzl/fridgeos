@@ -10,14 +10,15 @@ import { de } from 'date-fns/locale';
 
 interface NoteCardProps {
   note: Note;
-  onDelete: (noteId: string) => void;  // Updated to pass the noteId
+  onDelete: (noteId: string) => void;
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
   const handleDelete = () => {
-    console.log("Deleting product:", note.id);
+    console.log("NoteCard - Deleting product with ID:", note.id);
+    // Delete from storage
     deleteNote(note.id);
-    // Call the onDelete callback with the specific noteId
+    // Call the callback with the specific note ID
     onDelete(note.id);
   };
 
@@ -81,7 +82,12 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onDelete }) => {
             <Button variant="ghost" size="icon" className="text-gray-400 h-10 w-10">
               <Edit className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={handleDelete} className="text-gray-400 h-10 w-10">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleDelete} 
+              className="text-gray-400 h-10 w-10"
+            >
               <Trash className="h-5 w-5" />
             </Button>
           </div>
