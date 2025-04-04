@@ -31,7 +31,7 @@ const ProductList: React.FC<ProductListProps> = ({
   return (
     <div className="grid gap-4">
       {notes.length > 0 && (
-        notes.sort((a, b) => b.timestamp - a.timestamp).map((note) => (
+        notes.map((note) => (
           <NoteCard 
             key={note.id} 
             note={note} 
@@ -41,7 +41,7 @@ const ProductList: React.FC<ProductListProps> = ({
       )}
       
       {receiptProducts.length > 0 && (
-        receiptProducts.sort((a, b) => b.timestamp - a.timestamp).map((product) => (
+        receiptProducts.map((product) => (
           <div key={product.id} className="flex items-center justify-between p-4 bg-white rounded-lg shadow">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-4 w-4 text-primary" />

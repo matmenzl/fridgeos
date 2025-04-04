@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
+import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct, deleteNote, migrateLocalDataToSupabase } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/receipt-scanner/ReceiptScanner';
@@ -14,38 +14,79 @@ const Index = () => {
   const [receiptProducts, setReceiptProducts] = useState<ProductNote[]>([]);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [scannerDialogOpen, setScannerDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadNotes();
-    loadReceiptProducts();
-  }, []);
+    // Initial data loading and migration
+    const initializeData = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Versuche, lokale Daten zu migrieren
+        await migrateLocalDataToSupabase();
+        
+        // Jetzt die Daten aus Supabase laden
+        await loadNotes();
+        await loadReceiptProducts();
+      } catch (error) {
+        console.error('Fehler beim Initialisieren der Daten:', error);
+        toast({
+          title: "Fehler",
+          description: "Die Daten konnten nicht geladen werden.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const loadNotes = () => {
+    initializeData();
+  }, [toast]);
+
+  const loadNotes = async () => {
     console.log("Loading notes...");
-    const savedNotes = getAllNotes();
-    console.log("Loaded notes count:", savedNotes.length);
-    setNotes(savedNotes);
+    try {
+      const savedNotes = await getAllNotes();
+      console.log("Loaded notes count:", savedNotes.length);
+      setNotes(savedNotes);
+    } catch (error) {
+      console.error('Fehler beim Laden der Notizen:', error);
+    }
   };
 
-  const loadReceiptProducts = () => {
+  const loadReceiptProducts = async () => {
     console.log("Loading receipt products...");
-    const savedProducts = getAllReceiptProducts();
-    console.log("Loaded receipt products count:", savedProducts.length);
-    setReceiptProducts(savedProducts);
+    try {
+      const savedProducts = await getAllReceiptProducts();
+      console.log("Loaded receipt products count:", savedProducts.length);
+      setReceiptProducts(savedProducts);
+    } catch (error) {
+      console.error('Fehler beim Laden der Produkte:', error);
+    }
   };
 
-  const handleProductSave = (data: { text: string, metadata: any }) => {
+  const handleProductSave = async (data: { text: string, metadata: any }) => {
     console.log("Saving product:", data);
     if (data.metadata.product && data.metadata.product.trim()) {
       const productName = data.metadata.product.trim();
       console.log("Saving product name:", productName);
-      saveNote(productName);
-      loadNotes();
-      toast({
-        title: "Produkt gespeichert",
-        description: `"${productName}" wurde erfolgreich gespeichert.`,
-      });
+      
+      try {
+        await saveNote(productName);
+        await loadNotes();
+        toast({
+          title: "Produkt gespeichert",
+          description: `"${productName}" wurde erfolgreich gespeichert.`,
+        });
+      } catch (error) {
+        console.error("Fehler beim Speichern:", error);
+        toast({
+          title: "Fehler",
+          description: "Beim Speichern des Produkts ist ein Fehler aufgetreten.",
+          variant: "destructive",
+        });
+      }
     } else {
       console.error("No product name found in:", data);
       toast({
@@ -56,43 +97,65 @@ const Index = () => {
     }
   };
 
-  const handleDeleteReceiptProduct = (id: string) => {
+  const handleDeleteReceiptProduct = async (id: string) => {
     console.log("Deleting receipt product:", id);
-    deleteReceiptProduct(id);
-    // Update the state directly after deletion
-    setReceiptProducts(prevProducts => prevProducts.filter(product => product.id !== id));
-    toast({
-      title: "Produkt gelöscht",
-      description: "Das Produkt wurde erfolgreich gelöscht.",
-    });
+    try {
+      const success = await deleteReceiptProduct(id);
+      if (success) {
+        // Update the state directly after deletion
+        setReceiptProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+        toast({
+          title: "Produkt gelöscht",
+          description: "Das Produkt wurde erfolgreich gelöscht.",
+        });
+      } else {
+        throw new Error('Produkt konnte nicht gelöscht werden');
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen des Produkts:', error);
+      toast({
+        title: "Fehler",
+        description: "Das Produkt konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const updateProductLists = () => {
+  const updateProductLists = async () => {
     console.log("Updating product lists after receipt scan");
     // This function refreshes both notes and receipt products
-    loadNotes();
-    loadReceiptProducts();
+    await loadNotes();
+    await loadReceiptProducts();
   };
 
-  const handleNoteDelete = (noteId: string) => {
+  const handleNoteDelete = async (noteId: string) => {
     console.log("Index - Note deleted, ID:", noteId);
     
-    // Update the notes state by filtering out only the deleted note
-    setNotes(currentNotes => {
-      const filteredNotes = currentNotes.filter(note => {
-        const keep = note.id !== noteId;
-        console.log(`Note ${note.id} keep? ${keep} (comparing with ${noteId})`);
-        return keep;
+    try {
+      const success = await deleteNote(noteId);
+      if (success) {
+        // Update the notes state by filtering out the deleted note
+        setNotes(currentNotes => {
+          const filteredNotes = currentNotes.filter(note => note.id !== noteId);
+          console.log("Notes after filtering:", filteredNotes.map(n => n.id));
+          return filteredNotes;
+        });
+        
+        toast({
+          title: "Produkt gelöscht",
+          description: "Das Produkt wurde erfolgreich gelöscht.",
+        });
+      } else {
+        throw new Error('Notiz konnte nicht gelöscht werden');
+      }
+    } catch (error) {
+      console.error('Fehler beim Löschen der Notiz:', error);
+      toast({
+        title: "Fehler",
+        description: "Das Produkt konnte nicht gelöscht werden.",
+        variant: "destructive",
       });
-      
-      console.log("Notes after filtering:", filteredNotes.map(n => n.id));
-      return filteredNotes;
-    });
-    
-    toast({
-      title: "Produkt gelöscht",
-      description: "Das Produkt wurde erfolgreich gelöscht.",
-    });
+    }
   };
 
   return (
@@ -108,12 +171,18 @@ const Index = () => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Erfasste Lebensmittel</h2>
         
         <div className="mb-8">
-          <ProductList 
-            notes={notes}
-            receiptProducts={receiptProducts}
-            onNoteDelete={handleNoteDelete}
-            onReceiptProductDelete={handleDeleteReceiptProduct}
-          />
+          {isLoading ? (
+            <div className="flex justify-center p-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <ProductList 
+              notes={notes}
+              receiptProducts={receiptProducts}
+              onNoteDelete={handleNoteDelete}
+              onReceiptProductDelete={handleDeleteReceiptProduct}
+            />
+          )}
         </div>
         
         <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
