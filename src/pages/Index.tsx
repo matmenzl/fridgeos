@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SpeechInput from '../components/SpeechInput';
 import NoteCard from '../components/NoteCard';
@@ -6,7 +5,7 @@ import MenuSuggestions from '../components/MenuSuggestions';
 import { getAllNotes, saveNote, Note, getAllReceiptProducts, ProductNote, deleteReceiptProduct } from '../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, Scan, ShoppingBag, Trash, Package } from "lucide-react";
+import { Plus, Scan, ShoppingBag, Trash } from "lucide-react";
 import ProductCaptureDialog from '../components/product-capture/ProductCaptureDialog';
 import ReceiptScanner from '../components/ReceiptScanner';
 
@@ -45,9 +44,7 @@ const Index = () => {
 
   const handleProductSave = (data: { text: string, metadata: any }) => {
     console.log("Saving product:", data);
-    // Save the product name directly
     if (data.metadata.product && data.metadata.product.trim()) {
-      // Save the product name as the note text, not the formatted text
       const productName = data.metadata.product.trim();
       console.log("Saving product name:", productName);
       saveNote(productName);
@@ -78,8 +75,7 @@ const Index = () => {
   return (
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center justify-center gap-2">
-          <Package size={28} className="text-green-500" />
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">
           <span>Fridgie</span>
         </h1>
         <p className="text-muted-foreground">Dein smarter Kühlschrankverwalter mit KI-basierten Rezeptvorschlägen.</p>
@@ -146,7 +142,6 @@ const Index = () => {
         )}
       </div>
       
-      {/* Pass both notes and receiptProducts to MenuSuggestions */}
       <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
       <ProductCaptureDialog 
