@@ -49,7 +49,7 @@ const Index = () => {
   return (
     <div className="min-h-screen max-w-3xl mx-auto p-4 md:p-6">
       <header className="text-center mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">Sprach-Speicher</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Fridgie</h1>
         <p className="text-muted-foreground">Nimm Sprachnotizen auf und erfasse Produkte</p>
       </header>
 
