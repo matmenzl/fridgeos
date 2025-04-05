@@ -1,8 +1,17 @@
 
 project_id = "ygvocurodighahfjyjnw"
 
-[functions.receipt-parser]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
 
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[functions]
 [functions.menu-suggestions]
 verify_jwt = false

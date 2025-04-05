@@ -74,7 +74,7 @@ const ProductList: React.FC<ProductListProps> = ({
         name: cleanedName,
         isVoice: true,
         category,
-        timestamp: note.timestamp
+        timestamp: note.timestamp // Include the timestamp property
       };
     });
 
@@ -92,13 +92,12 @@ const ProductList: React.FC<ProductListProps> = ({
         name: cleanedName,
         isVoice: false,
         category,
-        timestamp: product.timestamp
+        timestamp: product.timestamp // Include the timestamp property
       };
     });
 
-  // Combine all products for display - ensure newest products appear first
-  const allProducts = [...processedNotes, ...processedReceiptProducts]
-    .sort((a, b) => b.timestamp - a.timestamp); // Sort combined list by timestamp, newest first
+  // Combine all products for display
+  const allProducts = [...processedNotes, ...processedReceiptProducts];
 
   // Toggle category selection
   const toggleCategory = (category: FoodCategory) => {
