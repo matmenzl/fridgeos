@@ -24,7 +24,7 @@ export const handleSupabaseError = (error: any, fallbackFn: () => void) => {
  * @param mapFunction Function to map database items to application format
  */
 export const fetchAllItems = async <T>(
-  tableName: string,
+  tableName: 'notes' | 'receipt_products',
   orderColumn: string,
   getFallbackItems: () => T[],
   mapFunction: (item: any) => T
