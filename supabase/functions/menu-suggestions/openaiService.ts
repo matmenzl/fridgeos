@@ -22,6 +22,8 @@ Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Numm
 `;
 
   try {
+    console.log("Sending menu suggestions prompt to OpenAI:", prompt);
+    
     const chatCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -32,6 +34,7 @@ Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Numm
       max_tokens: 500,
     });
 
+    console.log("OpenAI response received for menu suggestions");
     const response = chatCompletion.choices[0].message.content || "";
     const suggestions = response
       .split('\n')
@@ -39,9 +42,11 @@ Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Numm
       .slice(0, 6);
     
     if (suggestions.length === 0) {
+      console.error("No suggestions received from OpenAI");
       throw new Error("Keine Vorschläge von OpenAI erhalten");
     }
     
+    console.log("Generated suggestions:", suggestions);
     return suggestions;
   } catch (error) {
     console.error("Error calling OpenAI for menu suggestions:", error);
@@ -57,7 +62,7 @@ export async function generateRecipeWithOpenAI(menuSuggestion: string): Promise<
   }
 
   try {
-    console.log("Creating OpenAI client for recipe generation with key:", OPENAI_API_KEY ? "Key exists" : "No key");
+    console.log("Creating OpenAI client for recipe generation");
     const openai = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });

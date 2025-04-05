@@ -30,7 +30,7 @@ export async function handleRequest(req: Request): Promise<Response> {
       
       try {
         reqBody = JSON.parse(bodyText);
-        console.log("Request body parsed successfully:", JSON.stringify(reqBody));
+        console.log("Request body parsed successfully:", JSON.stringify(reqBody, null, 2));
       } catch (e) {
         console.error("Error parsing JSON body:", e);
         return new Response(
@@ -83,8 +83,9 @@ export async function handleRequest(req: Request): Promise<Response> {
     );
   }
 
-  const { products = [], action = "getMenuSuggestions" } = reqBody || {};
-  console.log("Action:", action, "Products:", Array.isArray(products) ? products.length : typeof products);
+  // Get action and products from request body
+  const { products, action } = reqBody || {};
+  console.log("Action:", action, "Products:", typeof products === 'string' ? products : Array.isArray(products) ? products.length : typeof products);
 
   if (action === "ping") {
     return new Response(
@@ -101,6 +102,19 @@ export async function handleRequest(req: Request): Promise<Response> {
     return await handleMenuSuggestions(products);
   } else if (action === "getRecipe") {
     console.log("Handling recipe generation for:", products);
+    if (typeof products !== 'string') {
+      console.error("Invalid product type for recipe generation:", typeof products);
+      return new Response(
+        JSON.stringify({ 
+          error: "Ungültiger Menüvorschlag-Typ",
+          recipe: "Rezept konnte nicht generiert werden. Ungültiger Menüvorschlag-Typ." 
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
+    }
     return await handleRecipeGeneration(products);
   } else {
     console.error("Invalid action:", action);

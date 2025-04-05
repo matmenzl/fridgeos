@@ -38,6 +38,9 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
       }
     });
     
+    // Log komplette Antwort für Debugging
+    console.log('Menu API Antwort:', JSON.stringify(response, null, 2));
+    
     // Check if we got any response data at all
     if (!response.data && response.error) {
       console.error('Fehler bei der Generierung von Menüvorschlägen:', response.error);
@@ -90,6 +93,12 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     if (response.data?.recipe && typeof response.data.recipe === 'string') {
       console.log('Rezept erhalten mit Länge:', response.data.recipe.length);
       return response.data.recipe;
+    }
+    
+    // If we got an error message in the response
+    if (response.data?.error) {
+      console.error('API Fehler erhalten:', response.data.error);
+      return `Rezept konnte nicht generiert werden. ${response.data.error}`;
     }
     
     // If we got a status message but no recipe, it's likely the edge function isn't fully processing the request
