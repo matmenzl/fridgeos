@@ -68,9 +68,8 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
 export const getRecipeForSuggestion = async (suggestion: string): Promise<string> => {
   try {
     console.log(`Hole Rezept für: ${suggestion}`);
-    console.log(`Rufe Edge-Funktion "menu-suggestions" für Rezept auf: ${suggestion}`);
     
-    // Klarerer Aufruf der Edge-Funktion mit explizitem Aktionsparameter
+    // First attempt with explicit action parameter
     const response = await supabase.functions.invoke('menu-suggestions', {
       body: { 
         products: suggestion, 
@@ -95,14 +94,38 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       return response.data.recipe;
     }
     
+    // Wenn die Antwort kein Rezept enthält, versuchen wir es mit einem zweiten Aufruf
+    // Dies ist für den Fall, dass die Edge-Funktion nicht richtig auf den ersten Aufruf reagiert hat
+    console.log("Keine gültigen Rezeptdaten erhalten, versuche erneuten Aufruf mit retryAttempt=true");
+    
+    const retryResponse = await supabase.functions.invoke('menu-suggestions', {
+      body: { 
+        products: suggestion, 
+        action: 'getRecipe',
+        retryAttempt: true
+      },
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Retry Rezept API Antwort:", retryResponse);
+    
+    // Prüfe, ob der zweite Versuch erfolgreich war
+    if (retryResponse.data?.recipe && typeof retryResponse.data.recipe === 'string') {
+      console.log("Rezept im zweiten Versuch erhalten mit Länge:", retryResponse.data.recipe.length);
+      return retryResponse.data.recipe;
+    }
+    
     // Wenn wir einen API-Fehler bekommen haben
-    if (response.data?.error) {
-      console.error("API Fehler erhalten:", response.data.error);
-      return `Rezept konnte nicht generiert werden. ${response.data.error}`;
+    if (response.data?.error || retryResponse.data?.error) {
+      const errorMsg = response.data?.error || retryResponse.data?.error;
+      console.error("API Fehler erhalten:", errorMsg);
+      return `Rezept konnte nicht generiert werden. ${errorMsg}`;
     }
     
     // Wenn die Antwort nicht das erwartete Format hat
-    console.error("Ungültige oder unvollständige Antwort erhalten:", response.data);
+    console.error("Ungültige oder unvollständige Antwort erhalten:", response.data || retryResponse.data);
     return `Rezept konnte nicht generiert werden. Die API lieferte keine gültigen Daten.`;
   } catch (error) {
     console.error('Fehler bei der Generierung des Rezepts:', error);
