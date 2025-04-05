@@ -61,7 +61,13 @@ const HomePage: React.FC = () => {
         
         <MenuSuggestions notes={notes} receiptProducts={receiptProducts} />
 
-        <ProductCapture onProductsUpdated={updateProductLists} />
+        <ProductCapture 
+          productDialogOpen={productDialogOpen}
+          setProductDialogOpen={setProductDialogOpen}
+          scannerDialogOpen={scannerDialogOpen}
+          setScannerDialogOpen={setScannerDialogOpen}
+          onProductsUpdated={updateProductLists}
+        />
       </div>
     </div>
   );

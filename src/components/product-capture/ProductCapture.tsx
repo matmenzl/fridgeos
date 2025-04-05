@@ -1,17 +1,25 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Note, ProductNote, saveNote } from '../../services/noteStorage';
 import { useToast } from "@/hooks/use-toast";
 import ProductCaptureDialog from './ProductCaptureDialog';
 import ReceiptScanner from '../receipt-scanner/ReceiptScanner';
 
 interface ProductCaptureProps {
+  productDialogOpen: boolean;
+  setProductDialogOpen: (open: boolean) => void;
+  scannerDialogOpen: boolean;
+  setScannerDialogOpen: (open: boolean) => void;
   onProductsUpdated: () => Promise<void>;
 }
 
-const ProductCapture: React.FC<ProductCaptureProps> = ({ onProductsUpdated }) => {
-  const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [scannerDialogOpen, setScannerDialogOpen] = useState(false);
+const ProductCapture: React.FC<ProductCaptureProps> = ({ 
+  productDialogOpen, 
+  setProductDialogOpen, 
+  scannerDialogOpen, 
+  setScannerDialogOpen, 
+  onProductsUpdated 
+}) => {
   const { toast } = useToast();
 
   const handleProductSave = async (data: { text: string, metadata: any }) => {
