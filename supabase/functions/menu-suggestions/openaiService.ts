@@ -52,6 +52,7 @@ Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Numm
 // Generate recipe with OpenAI
 export async function generateRecipeWithOpenAI(menuSuggestion: string): Promise<string> {
   if (!OPENAI_API_KEY) {
+    console.error("OpenAI API key is missing");
     throw new Error("OpenAI API key is not available");
   }
 

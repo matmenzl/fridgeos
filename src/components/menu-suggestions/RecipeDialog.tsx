@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { LoaderCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { RecipeDialogProps } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 const RecipeDialog: React.FC<RecipeDialogProps> = ({ 
   open, 
@@ -12,8 +13,17 @@ const RecipeDialog: React.FC<RecipeDialogProps> = ({
   recipe, 
   isLoading 
 }) => {
+  const { toast } = useToast();
   // Check if the recipe is an error message
   const isErrorMessage = recipe?.startsWith('Rezept konnte nicht');
+  
+  const handleRetry = () => {
+    toast({
+      title: "Neuer Versuch",
+      description: "Ein neuer Versuch wird gestartet, um das Rezept zu laden.",
+    });
+    onOpenChange(false);
+  };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,7 +56,7 @@ const RecipeDialog: React.FC<RecipeDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Schließen</Button>
           {isErrorMessage && (
             <Button 
-              onClick={() => onOpenChange(false)}
+              onClick={handleRetry}
               variant="default"
               className="flex items-center gap-2"
             >

@@ -109,6 +109,8 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
           }
         });
         
+        console.log('Retry response:', JSON.stringify(retryResponse, null, 2));
+        
         if (retryResponse.data?.recipe) {
           return retryResponse.data.recipe;
         }

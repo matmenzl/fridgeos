@@ -71,10 +71,14 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
       console.log('Hole Rezept für:', suggestion);
       const recipeText = await getRecipeForSuggestion(suggestion);
       
-      if (recipeText && recipeText.length > 0) {
+      if (recipeText && recipeText.length > 0 && !recipeText.startsWith('Rezept konnte nicht')) {
         setRecipe(recipeText);
+        toast({
+          title: "Rezept geladen",
+          description: "Das Rezept wurde erfolgreich geladen.",
+        });
       } else {
-        setRecipe('Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');
+        setRecipe(recipeText || 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.');
         toast({
           title: "Hinweis",
           description: "Das Rezept konnte nicht geladen werden.",
@@ -92,6 +96,18 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
       });
     } finally {
       setIsLoadingRecipe(false);
+    }
+  };
+
+  // Resets the recipe dialog state when it's closed
+  const handleRecipeDialogOpenChange = (open: boolean) => {
+    setRecipeDialogOpen(open);
+    if (!open) {
+      // If dialog is being closed, reset the recipe state after a delay
+      setTimeout(() => {
+        setRecipe('');
+        setSelectedSuggestion(null);
+      }, 300);
     }
   };
 
@@ -156,7 +172,7 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
     recipe,
     isLoadingRecipe,
     recipeDialogOpen,
-    setRecipeDialogOpen,
+    setRecipeDialogOpen: handleRecipeDialogOpenChange,
     regenerateSuggestions,
     handleGetRecipe
   };

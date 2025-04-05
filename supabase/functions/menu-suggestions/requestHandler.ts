@@ -14,7 +14,7 @@ export async function handleRequest(req: Request): Promise<Response> {
     // Only try to parse body if the content type is JSON
     if (contentType.includes("application/json")) {
       const bodyText = await req.text();
-      console.log("Request body length:", bodyText.length);
+      console.log("Request body text:", bodyText);
       
       if (!bodyText || bodyText.trim().length === 0) {
         console.log("Empty request body - handling ping");
