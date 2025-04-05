@@ -55,7 +55,7 @@ export async function generateRecipe(
     
     // Return the recipe text
     const recipe = data.choices[0].message.content.trim();
-    console.log("Generated recipe:", recipe);
+    console.log("Generated recipe:", recipe.substring(0, 100) + "...");
     
     return recipe;
   } catch (error) {

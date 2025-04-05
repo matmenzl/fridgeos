@@ -37,10 +37,6 @@ export async function handleRequest(req: Request): Promise<Response> {
     
     const { products, action, retryAttempt } = body;
     
-    if (!products) {
-      throw new Error('Produkte müssen übergeben werden');
-    }
-    
     // Check API key configuration
     const openAiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAiApiKey) {
@@ -52,11 +48,17 @@ export async function handleRequest(req: Request): Promise<Response> {
       console.log(`Generating recipe for: "${products}"`);
       console.log(`Is retry attempt: ${retryAttempt ? 'yes' : 'no'}`);
       
+      if (!products) {
+        throw new Error('Gericht muss übergeben werden');
+      }
+      
       if (typeof products !== 'string') {
         throw new Error('Gericht muss als String übergeben werden');
       }
       
       const recipe = await generateRecipe(products, openAiApiKey, retryAttempt);
+      console.log("Generated recipe length:", recipe.length);
+      
       return new Response(
         JSON.stringify({ recipe }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,6 +66,10 @@ export async function handleRequest(req: Request): Promise<Response> {
     } else if (action === 'getMenuSuggestions') {
       // Standard action: generate menu suggestions
       console.log(`Generating menu suggestions for products: ${JSON.stringify(products)}`);
+      
+      if (!products) {
+        throw new Error('Produkte müssen übergeben werden');
+      }
       
       if (!Array.isArray(products)) {
         throw new Error('Produkte müssen als Array übergeben werden');
@@ -74,11 +80,17 @@ export async function handleRequest(req: Request): Promise<Response> {
         JSON.stringify({ suggestions: suggestions.slice(0, 6) }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    } else if (action === 'ping') {
+      // Simple ping action
+      return new Response(
+        JSON.stringify({ status: "ok" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } else {
       // Unknown action
       console.error(`Unknown action: ${action}`);
       return new Response(
-        JSON.stringify({ error: "Unknown action" }),
+        JSON.stringify({ error: "Unknown action", providedAction: action }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
