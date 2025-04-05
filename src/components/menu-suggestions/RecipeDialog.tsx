@@ -2,7 +2,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LoaderCircle, AlertTriangle } from "lucide-react";
+import { LoaderCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { RecipeDialogProps } from "./types";
 
 const RecipeDialog: React.FC<RecipeDialogProps> = ({ 
@@ -34,7 +34,7 @@ const RecipeDialog: React.FC<RecipeDialogProps> = ({
             <div className="flex flex-col items-center justify-center py-8 space-y-4 text-center">
               <AlertTriangle size={32} className="text-amber-500" />
               <p className="text-muted-foreground">{recipe}</p>
-              <p className="text-sm text-muted-foreground">Bitte versuche es später erneut.</p>
+              <p className="text-sm text-muted-foreground">Möglicherweise liegt ein Problem mit der Edge-Funktion vor. Bitte versuche es später erneut.</p>
             </div>
           ) : (
             <div className="recipe-content whitespace-pre-line">
@@ -48,8 +48,10 @@ const RecipeDialog: React.FC<RecipeDialogProps> = ({
             <Button 
               onClick={() => onOpenChange(false)}
               variant="default"
+              className="flex items-center gap-2"
             >
-              Erneut versuchen
+              <RefreshCw size={16} />
+              <span>Erneut versuchen</span>
             </Button>
           )}
         </DialogFooter>

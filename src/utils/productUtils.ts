@@ -92,9 +92,30 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       return response.data.recipe;
     }
     
-    // If we just got a status message, it's likely a ping response or a misconfiguration
+    // If we got a status message but no recipe, it's likely the edge function isn't fully processing the request
     if (response.data?.status === "ok" && !response.data.recipe) {
       console.error('Ungültige Antwort erhalten: Nur Status-OK ohne Rezept');
+      // Try a second call with a clearer action parameter
+      try {
+        console.log('Versuche erneuten Aufruf mit klarerem Aktionsparameter');
+        const retryResponse = await supabase.functions.invoke('menu-suggestions', {
+          body: { 
+            products: suggestion, 
+            action: 'getRecipe',
+            retryAttempt: true
+          },
+          headers: {
+            'Content-Type': 'application/json' 
+          }
+        });
+        
+        if (retryResponse.data?.recipe) {
+          return retryResponse.data.recipe;
+        }
+      } catch (retryError) {
+        console.error('Fehler beim zweiten Versuch:', retryError);
+      }
+      
       return 'Rezept konnte nicht generiert werden. Die API lieferte keine gültigen Daten.';
     }
     

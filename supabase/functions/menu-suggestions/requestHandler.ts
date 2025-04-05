@@ -71,6 +71,18 @@ export async function handleRequest(req: Request): Promise<Response> {
     );
   }
 
+  // Handle empty body as a ping request
+  if (!reqBody || Object.keys(reqBody).length === 0) {
+    console.log("Empty request body object - handling ping");
+    return new Response(
+      JSON.stringify({ status: "ok" }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200
+      }
+    );
+  }
+
   const { products = [], action = "getMenuSuggestions" } = reqBody || {};
   console.log("Action:", action, "Products:", Array.isArray(products) ? products.length : typeof products);
 
