@@ -44,7 +44,7 @@ serve(async (req) => {
       );
     }
     
-    const { products, action } = body;
+    const { products, action, retryAttempt } = body;
     
     if (!products) {
       throw new Error('Produkte müssen übergeben werden');
@@ -62,6 +62,8 @@ serve(async (req) => {
     
     if (action === 'getRecipe') {
       console.log(`Generating recipe for: "${products}"`);
+      console.log(`Is retry attempt: ${retryAttempt ? 'yes' : 'no'}`);
+      
       if (typeof products !== 'string') {
         throw new Error('Gericht muss als String übergeben werden');
       }
@@ -118,6 +120,7 @@ serve(async (req) => {
       const recipe = data.choices[0].message.content.trim();
       console.log("Generated recipe:", recipe);
       
+      // WICHTIG: Stellen Sie sicher, dass das recipe-Feld im zurückgegebenen JSON enthalten ist
       return new Response(
         JSON.stringify({ recipe }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -201,9 +204,13 @@ Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Numm
       );
     } else {
       // Unbekannte Aktion
+      console.error(`Unknown action: ${action}`);
       return new Response(
-        JSON.stringify({ status: "ok" }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: "Unknown action" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
   } catch (error) {
