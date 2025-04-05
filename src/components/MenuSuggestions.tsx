@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,17 +139,8 @@ const MenuSuggestions: React.FC<MenuSuggestionsProps> = ({ notes, receiptProduct
     }
   };
   
-  useEffect(() => {
-    const generateSuggestions = async () => {
-      if (notes.length > 0 || receiptProducts.length > 0) {
-        // Wir prüfen nicht mehr, ob ein API-Schlüssel im localStorage ist
-        // Stattdessen prüfen wir, ob die Edge-Funktion erreichbar ist
-        await regenerateSuggestions();
-      }
-    };
-    
-    generateSuggestions();
-  }, [notes, receiptProducts]);
+  // Removed the useEffect that automatically generates suggestions on page load
+  // We'll now only generate suggestions when the button is clicked
   
   // Only show menu suggestions if we have products (either from notes or receipt products)
   const hasProducts = notes.length > 0 || receiptProducts.length > 0;
