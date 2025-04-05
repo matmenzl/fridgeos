@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
@@ -61,7 +60,7 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   }
 };
 
-// Neue Funktion zum Abrufen eines Rezepts für einen Menüvorschlag
+// New function to get recipe for a menu suggestion
 export const getRecipeForSuggestion = async (suggestion: string): Promise<string> => {
   try {
     console.log('Rufe Edge-Funktion "menu-suggestions" für Rezept auf:', suggestion);

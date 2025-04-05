@@ -6,7 +6,7 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 export async function handleRecipeGeneration(products: any): Promise<Response> {
   if (!products || typeof products !== 'string') {
-    console.error("Invalid product for recipe generation");
+    console.error("Invalid product for recipe generation:", products);
     return new Response(
       JSON.stringify({ 
         error: "Ungültiger Menüvorschlag",
@@ -35,6 +35,21 @@ export async function handleRecipeGeneration(products: any): Promise<Response> {
   try {
     console.log("Generating recipe for:", products);
     const recipe = await generateRecipeWithOpenAI(products);
+    
+    if (!recipe || recipe.trim().length === 0) {
+      console.error("Received empty recipe from OpenAI");
+      return new Response(
+        JSON.stringify({ 
+          error: "Leeres Rezept erhalten",
+          recipe: "Rezept konnte nicht generiert werden. Bitte versuche es später erneut."
+        }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200
+        }
+      );
+    }
+    
     console.log("Recipe generated successfully with length:", recipe.length);
     
     return new Response(
