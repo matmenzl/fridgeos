@@ -88,6 +88,7 @@ export async function handleRequest(req: Request): Promise<Response> {
   if (action === "getMenuSuggestions") {
     return await handleMenuSuggestions(products);
   } else if (action === "getRecipe") {
+    console.log("Handling recipe generation for:", products);
     return await handleRecipeGeneration(products);
   } else {
     console.error("Invalid action:", action);

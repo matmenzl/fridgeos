@@ -82,13 +82,6 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     
     if (response.error) {
       console.error('Fehler bei der Generierung des Rezepts:', response.error);
-      
-      // Prüfen, ob die Antwort trotz Fehler ein Rezept enthält
-      if (response.data?.recipe && typeof response.data.recipe === 'string') {
-        console.log('Trotz Fehler wurde ein Rezept erhalten:', response.data.recipe.substring(0, 50) + '...');
-        return response.data.recipe;
-      }
-      
       return 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.';
     }
     
@@ -96,6 +89,12 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     if (response.data?.recipe && typeof response.data.recipe === 'string') {
       console.log('Rezept erhalten mit Länge:', response.data.recipe.length);
       return response.data.recipe;
+    }
+    
+    // If we just got a status message, it's likely a ping response or a misconfiguration
+    if (response.data?.status === "ok" && !response.data.recipe) {
+      console.error('Ungültige Antwort erhalten: Nur Status-OK ohne Rezept');
+      return 'Rezept konnte nicht generiert werden. Die API lieferte keine gültigen Daten.';
     }
     
     return 'Rezept konnte nicht generiert werden. Bitte versuche es später erneut.';

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { extractProductNames, generateMenuSuggestions, getRecipeForSuggestion } from "../utils/productUtils";
@@ -63,6 +64,7 @@ export const useMenuSuggestions = (notes: any[], receiptProducts: any[] = []) =>
   const handleGetRecipe = async (suggestion: string) => {
     setSelectedSuggestion(suggestion);
     setIsLoadingRecipe(true);
+    setRecipe(''); // Clear any previous recipe
     setRecipeDialogOpen(true);
     
     try {

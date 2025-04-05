@@ -5,6 +5,8 @@ import { generateRecipeWithOpenAI } from "./openaiService.ts";
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 export async function handleRecipeGeneration(products: any): Promise<Response> {
+  console.log("Recipe generation request received for:", products);
+  
   if (!products || typeof products !== 'string') {
     console.error("Invalid product for recipe generation:", products);
     return new Response(
@@ -51,6 +53,7 @@ export async function handleRecipeGeneration(products: any): Promise<Response> {
     }
     
     console.log("Recipe generated successfully with length:", recipe.length);
+    console.log("Recipe preview:", recipe.substring(0, 100) + "...");
     
     return new Response(
       JSON.stringify({ recipe }),

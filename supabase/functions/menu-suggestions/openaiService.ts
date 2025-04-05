@@ -56,6 +56,7 @@ export async function generateRecipeWithOpenAI(menuSuggestion: string): Promise<
   }
 
   try {
+    console.log("Creating OpenAI client for recipe generation");
     const openai = new OpenAI({
       apiKey: OPENAI_API_KEY,
     });
@@ -65,6 +66,7 @@ Erstelle ein detailliertes Rezept für "${menuSuggestion}".
 Bitte gib Zutaten und Zubereitungsschritte an.
 `;
 
+    console.log("Sending recipe prompt to OpenAI:", prompt);
     const chatCompletion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -75,12 +77,15 @@ Bitte gib Zutaten und Zubereitungsschritte an.
       max_tokens: 1000,
     });
 
+    console.log("OpenAI response received");
     const recipe = chatCompletion.choices[0].message.content;
     
     if (!recipe || recipe.trim().length === 0) {
+      console.error("Empty recipe received from OpenAI");
       throw new Error("Leeres Rezept von OpenAI erhalten");
     }
     
+    console.log("Recipe content length:", recipe.length);
     return recipe;
   } catch (error) {
     console.error("Error calling OpenAI for recipe:", error);
