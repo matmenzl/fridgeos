@@ -35,6 +35,7 @@ const FilteredProductList: React.FC<FilteredProductListProps> = ({
 
   // Handle delete based on product type
   const handleDelete = (id: string, isVoice: boolean) => {
+    console.log(`FilteredProductList - Lösche Produkt: ${id}, isVoice: ${isVoice}`);
     if (isVoice) {
       onDeleteNote(id);
     } else {

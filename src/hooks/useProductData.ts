@@ -4,10 +4,13 @@ import {
   Note, 
   ProductNote, 
   getAllNotes, 
-  getAllReceiptProducts, 
   migrateNotesToSupabase, 
   migrateReceiptProductsToSupabase 
 } from '../services/noteStorage';
+import { 
+  getAllReceiptProducts, 
+  deleteReceiptProduct 
+} from '../services/receiptProductService';
 import { useToast } from "@/hooks/use-toast";
 
 export function useProductData() {
@@ -85,7 +88,7 @@ export function useProductData() {
     }
   };
 
-  const handleNoteDelete = (noteId: string) => {
+  const handleNoteDelete = async (noteId: string) => {
     console.log("useProductData - Notiz gelöscht, ID:", noteId);
     
     // Notiz-State aktualisieren
@@ -133,13 +136,18 @@ export function useProductData() {
   };
 
   const handleDeleteReceiptProduct = async (id: string) => {
-    console.log("Kassenbeleg-Produkt löschen:", id);
-    console.log("Aktuelle Kassenbeleg-Produkte:", receiptProducts);
+    console.log("useProductData - Kassenbeleg-Produkt löschen:", id);
+    console.log("Aktuelle Kassenbeleg-Produkte vor dem Löschen:", receiptProducts.map(p => p.id));
     
     // State aktualisieren
     setReceiptProducts(prevProducts => {
-      const newProducts = prevProducts.filter(product => product.id !== id);
+      const newProducts = prevProducts.filter(product => {
+        const keep = product.id !== id;
+        console.log(`Produkt ${product.id} behalten? ${keep} (Vergleich mit ${id})`);
+        return keep;
+      });
       console.log(`Gefilterte Produkte: Vorher: ${prevProducts.length}, Nachher: ${newProducts.length}`);
+      console.log("Produkte nach Filterung:", newProducts.map(p => p.id));
       return newProducts;
     });
     

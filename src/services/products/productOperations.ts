@@ -70,7 +70,7 @@ export const getAllReceiptProducts = async (): Promise<ProductNote[]> => {
  * Funktion zum Löschen eines Kassenbeleg-Produkts in Supabase
  */
 export const deleteReceiptProduct = async (id: string): Promise<void> => {
-  console.log(`Versuche, Produkt mit ID: ${id} zu löschen`);
+  console.log(`productOperations - Versuche, Produkt mit ID: ${id} zu löschen`);
   
   try {
     const { error } = await supabase

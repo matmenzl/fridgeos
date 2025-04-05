@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
-import { Note, ProductNote, deleteNote, updateNote, updateReceiptProduct } from '../services/noteStorage';
+import { Note, ProductNote, deleteNote } from '../services/noteStorage';
 import EmptyProductList from './product/EmptyProductList';
 import { cleanProductName } from '../utils/productNameCleaner';
-import { FoodCategory, categorizeFoodItem, getAllFoodCategories } from '../utils/foodCategories';
+import { FoodCategory, categorizeFoodItem } from '../utils/foodCategories';
 import CategoryFilter from './product/CategoryFilter';
 import FilteredProductList from './product/FilteredProductList';
 import { useProductEdit } from './product/ProductEditHandler';
 import EditProductDialog from './product-capture/EditProductDialog';
+import { deleteReceiptProduct } from '../services/receiptProductService';
 
 interface ProductListProps {
   notes: Note[];
@@ -42,17 +43,38 @@ const ProductList: React.FC<ProductListProps> = ({
   }
 
   // Handler for deleting a receipt product
-  const handleProductDelete = (productId: string) => {
+  const handleProductDelete = async (productId: string) => {
     console.log(`ProductList - Produkt mit ID löschen: ${productId}`);
     console.log(`Verfügbare Produkte vor dem Löschen:`, receiptProducts.map(p => p.id));
-    onReceiptProductDelete(productId);
+    
+    try {
+      // Zuerst das Produkt aus der Datenbank löschen
+      await deleteReceiptProduct(productId);
+      
+      // Dann den UI-State über den Callback aktualisieren
+      onReceiptProductDelete(productId);
+      
+      console.log(`Produkt mit ID ${productId} erfolgreich gelöscht`);
+    } catch (error) {
+      console.error(`Fehler beim Löschen des Produkts mit ID ${productId}:`, error);
+    }
   };
 
   // Handler for deleting a voice note
   const handleNoteDelete = async (noteId: string) => {
     console.log(`ProductList - Sprachnotiz mit ID löschen: ${noteId}`);
-    await deleteNote(noteId);
-    onNoteDelete(noteId);
+    
+    try {
+      // Zuerst die Notiz aus der Datenbank löschen
+      await deleteNote(noteId);
+      
+      // Dann den UI-State über den Callback aktualisieren
+      onNoteDelete(noteId);
+      
+      console.log(`Notiz mit ID ${noteId} erfolgreich gelöscht`);
+    } catch (error) {
+      console.error(`Fehler beim Löschen der Notiz mit ID ${noteId}:`, error);
+    }
   };
 
   // Process voice notes for display

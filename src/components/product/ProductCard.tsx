@@ -30,6 +30,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // Get expiry information
   const expiryStatus = getExpiryStatus(timestamp, category);
   
+  // Handle delete with confirmation
+  const handleDelete = () => {
+    console.log(`ProductCard - Löschen des Produkts: ${id} (${name})`);
+    onDelete(id);
+  };
+  
   return (
     <Card key={id} className="w-full p-4 rounded-xl shadow-sm border-0">
       <div className="flex flex-col gap-2">
@@ -70,7 +76,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={() => onDelete(id)} 
+              onClick={handleDelete} 
               className="text-gray-400 h-10 w-10"
             >
               <Trash className="h-5 w-5" />
