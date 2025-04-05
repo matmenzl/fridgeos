@@ -66,7 +66,7 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
   try {
     console.log('Rufe Edge-Funktion "menu-suggestions" für Rezept auf:', suggestion);
     
-    // Rufe die Edge-Funktion auf mit verbessertem Error-Handling
+    // Ensure we're sending proper data in the request body
     const response = await supabase.functions.invoke('menu-suggestions', {
       body: { 
         products: suggestion, 
@@ -77,15 +77,16 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
       }
     });
     
-    // Verbesserte Fehlerbehandlung mit detaillierten Protokollen
+    // Log the complete response for debugging
     console.log('Rezept API Antwort:', JSON.stringify(response, null, 2));
     
+    // Handle error in response
     if (response.error) {
       console.error('Fehler bei der Generierung des Rezepts:', response.error);
       return 'Rezept konnte nicht geladen werden. Bitte versuche es später erneut.';
     }
     
-    // Wenn die Antwort ein data Objekt mit einem Rezept enthält
+    // If we have a recipe in the response, return it
     if (response.data?.recipe && typeof response.data.recipe === 'string') {
       console.log('Rezept erhalten mit Länge:', response.data.recipe.length);
       return response.data.recipe;
