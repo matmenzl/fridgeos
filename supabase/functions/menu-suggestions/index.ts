@@ -14,10 +14,40 @@ serve(async (req) => {
   }
 
   try {
-    const { products, action } = await req.json();
+    // Check if the request has a body
+    const reqText = await req.text();
+    console.log("Request content type:", req.headers.get("content-type"));
+    console.log("Request body text:", reqText);
     
-    if (!products || !Array.isArray(products)) {
-      throw new Error('Produkte müssen als Array übergeben werden');
+    // If the request body is empty, return a simple ping response
+    if (!reqText || reqText.trim() === '') {
+      console.log("Empty request body - handling ping");
+      return new Response(
+        JSON.stringify({ status: "ok" }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Parse the request body
+    let body;
+    try {
+      body = JSON.parse(reqText);
+      console.log("Request body parsed successfully:", body);
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    const { products, action } = body;
+    
+    if (!products) {
+      throw new Error('Produkte müssen übergeben werden');
     }
     
     // Der API-Schlüssel wird aus der Umgebungsvariablen gelesen
@@ -31,7 +61,8 @@ serve(async (req) => {
     let response;
     
     if (action === 'getRecipe') {
-      if (!products || typeof products !== 'string') {
+      console.log(`Generating recipe for: "${products}"`);
+      if (typeof products !== 'string') {
         throw new Error('Gericht muss als String übergeben werden');
       }
       
@@ -42,6 +73,8 @@ serve(async (req) => {
       - Zubereitungsschritte (nummeriert)
       
       Halte das Rezept kurz und prägnant, maximal 250 Wörter.`;
+      
+      console.log("Sending recipe prompt to OpenAI:", prompt);
       
       // Rufe die OpenAI API auf
       response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -66,18 +99,47 @@ serve(async (req) => {
           max_tokens: 500
         })
       });
-    } else {
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API Error:', errorData);
+        throw new Error(`OpenAI API Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
+      }
+      
+      const data = await response.json();
+      console.log("OpenAI response received for recipe:", data);
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Invalid response format from OpenAI:", data);
+        throw new Error("Ungültiges Antwortformat von OpenAI");
+      }
+      
+      // Für Rezepte gib den Text zurück
+      const recipe = data.choices[0].message.content.trim();
+      console.log("Generated recipe:", recipe);
+      
+      return new Response(
+        JSON.stringify({ recipe }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else if (action === 'getMenuSuggestions') {
       // Standardaktion: Menüvorschläge generieren
+      console.log(`Generating menu suggestions for products: ${JSON.stringify(products)}`);
+      
+      if (!Array.isArray(products)) {
+        throw new Error('Produkte müssen als Array übergeben werden');
+      }
+      
       // Erstelle den Prompt für ChatGPT
       const productsList = products.join(', ');
       
-      const prompt = `Du bist ein Koch-Experte und sollst Menüvorschläge basierend auf den folgenden Zutaten erstellen:
+      // Einfacherer Prompt für Menüvorschläge
+      const prompt = `Ich habe folgende Lebensmittel: ${productsList}.
+Erstelle 6 kreative Menüvorschläge, die ich mit diesen Zutaten (oder einigen davon) kochen könnte.
+Antworte nur mit einer Liste von 6 Menüvorschlägen, einer pro Zeile, ohne Nummerierung oder weitere Erklärungen.
+`;
       
-      ${productsList}
-      
-      Bitte erstelle 6 kreative Menüvorschläge (oder weniger, wenn nicht genug Zutaten vorhanden sind). 
-      Jeder Vorschlag sollte kurz sein (maximal 3-4 Wörter) und auf Deutsch.
-      Gib nur die Menüvorschläge zurück, einer pro Zeile, ohne Nummerierung oder andere Texte.`;
+      console.log("Sending menu suggestions prompt to OpenAI:", prompt);
       
       // Rufe die OpenAI API auf
       response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -91,7 +153,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: 'Du bist ein hilfreicher Assistent, der kreative Menüvorschläge basierend auf vorhandenen Zutaten erstellt.'
+              content: 'Du bist ein hilfreicher Kochassistent, der kreative Menüvorschläge basierend auf vorhandenen Zutaten erstellt.'
             },
             {
               role: 'user',
@@ -102,26 +164,24 @@ serve(async (req) => {
           max_tokens: 250
         })
       });
-    }
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
-    }
-    
-    const data = await response.json();
-    
-    if (action === 'getRecipe') {
-      // Für Rezepte gib den Text zurück
-      const recipe = data.choices[0].message.content.trim();
-      return new Response(
-        JSON.stringify({ recipe }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('OpenAI API Error:', errorData);
+        throw new Error(`OpenAI API Fehler: ${errorData.error?.message || 'Unbekannter Fehler'}`);
+      }
+      
+      const data = await response.json();
+      console.log("OpenAI response received for menu suggestions:", data);
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Invalid response format from OpenAI:", data);
+        throw new Error("Ungültiges Antwortformat von OpenAI");
+      }
+      
       // Für Menüvorschläge formatieren wir die Antwort
       const aiResponse = data.choices[0].message.content.trim();
+      console.log("Generated suggestions:", aiResponse);
       
       // Teile die Antwort nach Zeilenumbrüchen auf, um einzelne Vorschläge zu erhalten
       const suggestions = aiResponse.split('\n')
@@ -132,9 +192,17 @@ serve(async (req) => {
           return line.replace(/^\d+\.\s*/, '');
         });
       
+      console.log(`Generated ${suggestions.length} menu suggestions`);
+      
       // Gib bis zu 6 Vorschläge zurück
       return new Response(
         JSON.stringify({ suggestions: suggestions.slice(0, 6) }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      // Unbekannte Aktion
+      return new Response(
+        JSON.stringify({ status: "ok" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

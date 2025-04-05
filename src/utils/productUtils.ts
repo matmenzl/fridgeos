@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 
 export const extractProductNames = (notes: { text: string }[]): string[] => {
@@ -24,20 +25,26 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
   if (products.length === 0) return [];
   
   try {
-    // Rufe die Edge-Funktion auf
+    console.log(`Generiere Menüvorschläge für: ${JSON.stringify(products)}`);
+    console.log(`Rufe Edge-Funktion "menu-suggestions" mit diesen Produkten auf: ${JSON.stringify(products)}`);
+    
+    // Rufe die Edge-Funktion auf mit klarem Aktionsparameter
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
       body: { products, action: 'getMenuSuggestions' }
     });
+    
+    console.log("Menu API Antwort:", { data, error });
     
     if (error) {
       console.error('Fehler bei der Generierung von Menüvorschlägen:', error);
       throw error;
     }
     
-    if (data?.suggestions && Array.isArray(data.suggestions)) {
+    if (data?.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
       return data.suggestions;
     }
     
+    console.log("Keine gültigen Vorschläge erhalten, verwende Fallback");
     // Fallback auf die originale Implementierung, wenn die API keinen Erfolg hatte
     return fallbackMenuSuggestions(products);
   } catch (error) {
@@ -51,10 +58,15 @@ export const generateMenuSuggestions = async (products: string[]): Promise<strin
 // Neue Funktion zum Abrufen eines Rezepts für einen Menüvorschlag
 export const getRecipeForSuggestion = async (suggestion: string): Promise<string> => {
   try {
-    // Rufe die Edge-Funktion auf
+    console.log(`Hole Rezept für: ${suggestion}`);
+    
+    // Rufe die Edge-Funktion auf mit klarem Aktionsparameter
+    console.log(`Rufe Edge-Funktion "menu-suggestions" für Rezept auf: ${suggestion}`);
     const { data, error } = await supabase.functions.invoke('menu-suggestions', {
       body: { products: suggestion, action: 'getRecipe' }
     });
+    
+    console.log("Rezept API Antwort:", { data, error });
     
     if (error) {
       console.error('Fehler bei der Generierung des Rezepts:', error);
@@ -63,6 +75,29 @@ export const getRecipeForSuggestion = async (suggestion: string): Promise<string
     
     if (data?.recipe && typeof data.recipe === 'string') {
       return data.recipe;
+    }
+    
+    // Wenn nur Status zurückkommt ohne Rezept, versuche es erneut mit klarerem Aktionsparameter
+    if (data?.status === "ok" && !data.recipe) {
+      console.log("Ungültige Antwort erhalten: Nur Status-OK ohne Rezept");
+      console.log("Versuche erneuten Aufruf mit klarerem Aktionsparameter");
+      
+      // Zweiter Versuch mit noch deutlicherem Aktionsparameter
+      const retryResponse = await supabase.functions.invoke('menu-suggestions', {
+        body: { 
+          products: suggestion, 
+          action: 'getRecipe',
+          requestType: 'recipeFetch'
+        }
+      });
+      
+      console.log("Retry response:", retryResponse);
+      
+      if (retryResponse.data?.recipe && typeof retryResponse.data.recipe === 'string') {
+        return retryResponse.data.recipe;
+      }
+      
+      throw new Error('Rezept konnte nicht generiert werden');
     }
     
     throw new Error('Rezept konnte nicht generiert werden');
